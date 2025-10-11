@@ -1,103 +1,109 @@
 {
-  "hash": "a8d73c83",
-  "configHash": "5dc96cf9",
-  "lockfileHash": "c47dd6ef",
-  "browserHash": "b64bcc4f",
+  "hash": "da934d6b",
+  "configHash": "95ce5781",
+  "lockfileHash": "1078f2df",
+  "browserHash": "93c3c680",
   "optimized": {
     "@angular/common": {
       "src": "../../../../../../node_modules/@angular/common/fesm2022/common.mjs",
       "file": "@angular_common.js",
-      "fileHash": "db8b20e7",
+      "fileHash": "ad53d889",
       "needsInterop": false
     },
     "@angular/core": {
       "src": "../../../../../../node_modules/@angular/core/fesm2022/core.mjs",
       "file": "@angular_core.js",
-      "fileHash": "621a06d9",
+      "fileHash": "e72ee43e",
       "needsInterop": false
     },
     "@angular/platform-browser": {
       "src": "../../../../../../node_modules/@angular/platform-browser/fesm2022/platform-browser.mjs",
       "file": "@angular_platform-browser.js",
-      "fileHash": "89f9d349",
+      "fileHash": "f394a3b7",
       "needsInterop": false
     },
     "@angular/platform-browser/animations/async": {
       "src": "../../../../../../node_modules/@angular/platform-browser/fesm2022/animations/async.mjs",
       "file": "@angular_platform-browser_animations_async.js",
-      "fileHash": "7ee142ab",
+      "fileHash": "254643ce",
       "needsInterop": false
     },
     "@angular/router": {
       "src": "../../../../../../node_modules/@angular/router/fesm2022/router.mjs",
       "file": "@angular_router.js",
-      "fileHash": "c7f786a1",
+      "fileHash": "fad857ea",
       "needsInterop": false
     },
     "@antv/x6": {
       "src": "../../../../../../node_modules/@antv/x6/es/index.js",
       "file": "@antv_x6.js",
-      "fileHash": "7e6ad417",
+      "fileHash": "71ed4130",
       "needsInterop": false
     },
     "@antv/x6-plugin-clipboard": {
       "src": "../../../../../../node_modules/@antv/x6-plugin-clipboard/es/index.js",
       "file": "@antv_x6-plugin-clipboard.js",
-      "fileHash": "81f8a72f",
+      "fileHash": "4345876d",
       "needsInterop": false
     },
     "@antv/x6-plugin-dnd": {
       "src": "../../../../../../node_modules/@antv/x6-plugin-dnd/es/index.js",
       "file": "@antv_x6-plugin-dnd.js",
-      "fileHash": "3e27aa22",
+      "fileHash": "416ea506",
       "needsInterop": false
     },
     "@antv/x6-plugin-history": {
       "src": "../../../../../../node_modules/@antv/x6-plugin-history/es/index.js",
       "file": "@antv_x6-plugin-history.js",
-      "fileHash": "4c4694dd",
+      "fileHash": "29d7ff63",
       "needsInterop": false
     },
     "@antv/x6-plugin-keyboard": {
       "src": "../../../../../../node_modules/@antv/x6-plugin-keyboard/es/index.js",
       "file": "@antv_x6-plugin-keyboard.js",
-      "fileHash": "5d1c39ee",
+      "fileHash": "1fa37fe7",
       "needsInterop": false
     },
     "@antv/x6-plugin-selection": {
       "src": "../../../../../../node_modules/@antv/x6-plugin-selection/es/index.js",
       "file": "@antv_x6-plugin-selection.js",
-      "fileHash": "1bee20ee",
+      "fileHash": "16623369",
       "needsInterop": false
     },
     "@antv/x6-plugin-transform": {
       "src": "../../../../../../node_modules/@antv/x6-plugin-transform/es/index.js",
       "file": "@antv_x6-plugin-transform.js",
-      "fileHash": "20e3497c",
+      "fileHash": "53098abd",
       "needsInterop": false
     },
     "@primeuix/themes/aura": {
       "src": "../../../../../../node_modules/@primeuix/themes/dist/aura/index.mjs",
       "file": "@primeuix_themes_aura.js",
-      "fileHash": "d1886380",
+      "fileHash": "e2660065",
       "needsInterop": false
     },
     "primeng/api": {
       "src": "../../../../../../node_modules/primeng/fesm2022/primeng-api.mjs",
       "file": "primeng_api.js",
-      "fileHash": "bdb2a704",
+      "fileHash": "7d5d2b0d",
       "needsInterop": false
     },
     "primeng/button": {
       "src": "../../../../../../node_modules/primeng/fesm2022/primeng-button.mjs",
       "file": "primeng_button.js",
-      "fileHash": "010822d0",
+      "fileHash": "cc5fd89e",
       "needsInterop": false
     },
     "primeng/config": {
       "src": "../../../../../../node_modules/primeng/fesm2022/primeng-config.mjs",
       "file": "primeng_config.js",
-      "fileHash": "700d2f2b",
+      "fileHash": "3335dad0",
+      "needsInterop": false
+    },
+    "@antv/x6-plugin-snapline": {
+      "src": "../../../../../../node_modules/@antv/x6-plugin-snapline/es/index.js",
+      "file": "@antv_x6-plugin-snapline.js",
+      "fileHash": "00412cd2",
       "needsInterop": false
     }
   },

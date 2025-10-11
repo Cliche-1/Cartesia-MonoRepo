@@ -1,59 +1,42 @@
-# Cartesia
+# Cartesia Monorepo
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.5.
+Estructura monorepo para una app tipo roadmap.sh con Angular (frontend) y Go (backend).
 
-## Development server
+## Estructura
 
-To start a local development server, run:
+- `frontend/`: Angular 20 + PrimeNG + Tailwind + X6
+- `backend/`: Go (Fiber + GORM + SQLite)
 
-```bash
-ng serve
-```
+## Desarrollo
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Frontend:
 
 ```bash
-ng generate component component-name
+cd frontend
+npm install
+npm start # o ng serve
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Abre `http://localhost:4200/`.
+
+Backend:
 
 ```bash
-ng generate --help
+cd backend
+go run ./cmd/server
 ```
 
-## Building
+Variables por defecto:
+- `PORT=8080`
+- `DB_PATH=./data/app.db`
+- `ALLOWED_ORIGINS=http://localhost:4200`
 
-To build the project run:
+## Rutas iniciales
 
-```bash
-ng build
-```
+- `GET /api/v1/health` → salud del backend
+- `GET /api/v1/roadmaps` → lista básica (placeholder)
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Notas
 
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- El archivo SQLite se guarda en `backend/data/app.db` y está ignorado por git.
+- La API está versionada bajo `/api/v1`.

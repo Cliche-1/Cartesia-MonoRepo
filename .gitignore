@@ -1,15 +1,15 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+# Frontend (Angular) compiled output
+frontend/dist/
+frontend/tmp/
+frontend/out-tsc/
+frontend/.angular/cache/
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# Node (frontend)
+frontend/node_modules/
+frontend/npm-debug.log
+frontend/yarn-error.log
 
 # IDEs and editors
 .idea/
@@ -29,7 +29,6 @@ yarn-error.log
 .history/*
 
 # Miscellaneous
-/.angular/cache
 .sass-cache/
 /connect.lock
 /coverage
@@ -38,6 +37,21 @@ testem.log
 /typings
 __screenshots__/
 
+# Backend (Go)
+backend/server.exe
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+backend/.env
+backend/bin/
+backend/tmp/
+
+# Root folders to ignore (legacy)
+/.angular/
+/public/
+/src/
+
 # System files
 .DS_Store
 Thumbs.db
+node_modules

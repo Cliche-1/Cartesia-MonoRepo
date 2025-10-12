@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-register',
@@ -98,18 +99,30 @@ export class RegisterPage {
   terms = false;
   showPwd = false;
   submitted = false;
+  loading = false;
+
+  constructor(private api: ApiService, private router: Router) {}
 
   isValidEmail(v: string): boolean {
     return /.+@.+\..+/.test(String(v||'').toLowerCase());
   }
   isStrongPassword(v: string): boolean { return (v||'').length >= 8; }
 
-  onSubmit() {
+  async onSubmit() {
     this.submitted = true;
     if (!this.name || !this.isValidEmail(this.email) || !this.isStrongPassword(this.password) || this.password !== this.confirm || !this.terms) {
       return;
     }
-    // Aquí integrar backend; por ahora solo feedback
-    alert('Registro enviado');
+    try {
+      this.loading = true;
+      const res = await this.api.register({ email: this.email, username: this.name, password: this.password });
+      this.api.token = res?.token || null;
+      await this.router.navigateByUrl('/roadmaps/editor');
+    } catch (err: any) {
+      alert('Error al registrar');
+      console.error(err);
+    } finally {
+      this.loading = false;
+    }
   }
 }

@@ -10,6 +10,7 @@ import { History } from '@antv/x6-plugin-history';
 import { Selection } from '@antv/x6-plugin-selection';
 import { Transform } from '@antv/x6-plugin-transform';
 import { Snapline } from '@antv/x6-plugin-snapline';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-roadmap-editor',
@@ -33,8 +34,13 @@ import { Snapline } from '@antv/x6-plugin-snapline';
             <option value="private">Only visible to me</option>
             <option value="public">Public</option>
           </select>
+          <select class="lp-select" [(ngModel)]="learningPathId" title="LearningPath">
+            <option [ngValue]="null">LP: none</option>
+            <option *ngFor="let p of paths" [ngValue]="p.id">LP: {{p.title}}</option>
+          </select>
+          <button type="button" class="tb-btn link" (click)="loadFromBackend()" [disabled]="!learningPathId || loadingBackend">Load LP</button>
           <button type="button" class="tb-btn link" (click)="previewRoadmap()">Live View</button>
-          <button type="button" class="tb-btn primary" (click)="saveAll()">Save Roadmap</button>
+          <button type="button" class="tb-btn primary" (click)="saveAll()" [disabled]="savingBackend">Save Roadmap</button>
         </div>
       </div>
       <!-- Sidebar izquierda colapsada -->
@@ -190,6 +196,7 @@ import { Snapline } from '@antv/x6-plugin-snapline';
     .title-input { width: 220px; max-width: 260px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; font-weight:700; }
     .subtitle-input { width: 280px; max-width: 320px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
     .visibility { padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
+    .lp-select { padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; max-width: 220px; }
     .sidebar { width:56px; border-right: 1px solid rgba(255,255,255,.12); display:flex; flex-direction:column; align-items:center; gap: 8px; padding: 8px; }
     .nav-buttons { display:grid; gap:8px; }
     .nav-btn { width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.06); color: var(--color-text); cursor:pointer; display:grid; place-items:center; }
@@ -287,7 +294,6 @@ import { Snapline } from '@antv/x6-plugin-snapline';
 })
 export class RoadmapEditorPage implements OnInit, OnDestroy {
   @ViewChild('graphContainer', { static: true }) graphEl!: ElementRef<HTMLDivElement>;
-  constructor(private router: Router) {}
   private graph!: Graph;
   private dnd!: Dnd;
   // Metadatos del roadmap
@@ -325,7 +331,15 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     { key: 'H', hex: '#e5e7eb' },
   ];
 
+  learningPathId: number | null = null;
+  paths: { id: number; title: string }[] = [];
+  loadingBackend = false;
+  savingBackend = false;
+
+  constructor(private router: Router, private api: ApiService) {}
+
   ngOnInit(): void {
+    this.fetchLearningPaths();
     // Cargar metadatos antes
     this.loadMeta();
     this.graph = new Graph({
@@ -662,6 +676,9 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   saveAll(): void {
     this.saveGraph();
     this.saveMeta();
+    if (this.learningPathId && this.api.isAuthenticated()) {
+      this.saveToBackend();
+    }
   }
   loadGraph(): void {
     try {
@@ -670,6 +687,40 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       const data = JSON.parse(str);
       this.graph?.fromJSON(data);
     } catch (e) { console.error('Error al cargar el roadmap', e); }
+  }
+
+  async fetchLearningPaths(): Promise<void> {
+    try {
+      const list = await this.api.listLearningPaths();
+      this.paths = (list || []).map((p: any) => ({ id: Number(p.id), title: String(p.title || '') }));
+      if (!this.learningPathId && this.paths.length) this.learningPathId = this.paths[0].id;
+    } catch (e) { console.error('Error al cargar roadmaps', e); }
+  }
+
+  async loadFromBackend(): Promise<void> {
+    if (!this.learningPathId) return;
+    try {
+      this.loadingBackend = true;
+      const data = await this.api.getDiagram(this.learningPathId);
+      this.graph?.clearCells();
+      this.graph?.fromJSON(data as any);
+    } catch (e) { console.error('Error al cargar diagrama', e); }
+    finally { this.loadingBackend = false; }
+  }
+
+  async saveToBackend(): Promise<void> {
+    if (!this.learningPathId) return;
+    try {
+      this.savingBackend = true;
+      const json = this.graph?.toJSON() as any;
+      const ok = await this.api.updateDiagram(this.learningPathId, json);
+      if (ok) {
+        // feedback mínimo
+        // eslint-disable-next-line no-alert
+        alert('Roadmap guardado en backend');
+      }
+    } catch (e) { console.error('Error al guardar diagrama', e); }
+    finally { this.savingBackend = false; }
   }
 
   previewRoadmap(): void {

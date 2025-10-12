@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { ApiService } from '../../../services/api.service';
 
 @Component({
   selector: 'app-navbar',
@@ -116,8 +117,48 @@ import { RouterLink } from '@angular/router';
 
       <!-- Actions -->
       <div class="actions">
-        <a class="btn ghost" routerLink="/login">Iniciar sesión</a>
-        <a class="btn primary" routerLink="/register">Registrarse</a>
+        <ng-container *ngIf="!api.isAuthenticated(); else authActions">
+          <a class="btn ghost" routerLink="/login">Iniciar sesión</a>
+          <a class="btn primary" routerLink="/register">Registrarse</a>
+        </ng-container>
+        <ng-template #authActions>
+          <div class="dropdown" [class.open]="accountOpen()">
+            <button
+              class="dropdown-trigger btn primary"
+              type="button"
+              (click)="toggleAccount()"
+              (blur)="closeAccountOnBlur($event)"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="accountOpen()"
+            >
+              <i class="pi pi-user"></i>
+              <span>Cuenta</span>
+              <i class="pi pi-chevron-down caret"></i>
+            </button>
+            <div class="menu right" role="menu">
+              <a role="menuitem" routerLink="/" class="item">
+                <i class="pi pi-user"></i>
+                <span>Perfil</span>
+              </a>
+              <a role="menuitem" routerLink="/" class="item">
+                <i class="pi pi-users"></i>
+                <span>Amigos</span>
+              </a>
+              <a role="menuitem" routerLink="/roadmaps/comunidad" class="item">
+                <i class="pi pi-list"></i>
+                <span>Mis roadmaps</span>
+              </a>
+              <a role="menuitem" routerLink="/roadmaps/editor" class="item">
+                <i class="pi pi-plus"></i>
+                <span>Nuevo roadmap</span>
+              </a>
+              <button role="menuitem" type="button" class="item plain" (click)="logout()">
+                <i class="pi pi-sign-out"></i>
+                <span>Salir</span>
+              </button>
+            </div>
+          </div>
+        </ng-template>
       </div>
     </header>
   `,
@@ -140,12 +181,15 @@ import { RouterLink } from '@angular/router';
     .dropdown.open .menu { opacity:1; pointer-events:auto; transform: translateY(0) scale(1); }
     .item { display:flex; align-items:flex-start; gap:10px; padding:10px; border-radius:10px; color: var(--color-text); text-decoration: none; }
     .item:hover { background: rgba(255,255,255,.08); }
+    .item.plain { background: transparent; border: 0; width: 100%; text-align: left; cursor: pointer; }
     .item i { font-size: 1.1rem; color: var(--tui-primary); }
     .info { display:flex; flex-direction:column; }
     .title { font-weight:600; }
     .desc { font-size:.85rem; color: var(--color-muted); }
 
     .actions { display:flex; align-items:center; gap:12px; }
+
+    .menu.right { left: auto; right: 0; }
 
     .pro-badge { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; background: transparent; color: var(--color-text); text-decoration:none; }
     .pro-badge:hover { background: rgba(255,255,255,.08); }
@@ -162,9 +206,13 @@ import { RouterLink } from '@angular/router';
 export class NavbarComponent {
   roadmapsOpen = signal(false);
   tutorOpen = signal(false);
+  accountOpen = signal(false);
+
+  constructor(public api: ApiService, private router: Router) {}
 
   toggleRoadmaps() { this.roadmapsOpen.update(v => !v); }
   toggleTutor() { this.tutorOpen.update(v => !v); }
+  toggleAccount() { this.accountOpen.update(v => !v); }
 
   closeRoadmapsOnBlur(event: FocusEvent) {
     const target = event.target as HTMLElement;
@@ -180,5 +228,24 @@ export class NavbarComponent {
       if (!target.parentElement?.classList.contains('open')) return;
       this.tutorOpen.set(false);
     }, 120);
+  }
+
+  closeAccountOnBlur(event: FocusEvent) {
+    const target = event.target as HTMLElement;
+    setTimeout(() => {
+      if (!target.parentElement?.classList.contains('open')) return;
+      this.accountOpen.set(false);
+    }, 120);
+  }
+
+  goToAccount() {
+    // Placeholder: redirige al inicio hasta que exista una página de perfil
+    this.router.navigateByUrl('/');
+  }
+
+  logout() {
+    this.api.token = null;
+    this.accountOpen.set(false);
+    this.router.navigateByUrl('/');
   }
 }

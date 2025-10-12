@@ -1,11 +1,11 @@
 package db
 
 import (
-	"time"
+    "time"
 
-	"cartesia/internal/domain"
-
-	"gorm.io/gorm"
+    "cartesia/internal/domain"
+    "golang.org/x/crypto/bcrypt"
+    "gorm.io/gorm"
 )
 
 // SeedDevData inserta datos de ejemplo para pruebas locales
@@ -19,7 +19,9 @@ func SeedDevData(d *gorm.DB) error {
 		return nil
 	}
 
-	user := domain.User{Username: "alice", Email: "alice@example.com", PasswordHash: "hash"}
+    // Usuario dev con contraseña "secret123"
+    hash, _ := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
+    user := domain.User{Username: "alice", Email: "alice@example.com", PasswordHash: string(hash)}
 	if err := d.Create(&user).Error; err != nil {
 		return err
 	}

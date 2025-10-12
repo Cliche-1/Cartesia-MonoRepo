@@ -1,15 +1,17 @@
 package main
 
 import (
-	"log"
-	"os"
+    "log"
+    "os"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+    "github.com/joho/godotenv"
+    "github.com/gofiber/fiber/v2"
+    "github.com/gofiber/fiber/v2/middleware/cors"
+    "github.com/gofiber/fiber/v2/middleware/logger"
+    "github.com/gofiber/fiber/v2/middleware/recover"
 
-	"cartesia/internal/db"
+    "cartesia/internal/api"
+    "cartesia/internal/db"
 )
 
 func getenv(key, def string) string {
@@ -20,15 +22,20 @@ func getenv(key, def string) string {
 }
 
 func main() {
-	// Config
-	port := getenv("PORT", "8080")
-	dbPath := getenv("DB_PATH", "./data/app.db")
+    // Cargar .env si existe
+    _ = godotenv.Load()
+    // Config
+    port := getenv("PORT", "8080")
+    dbPath := getenv("DB_PATH", "./data/app.db")
+    jwtSecret := getenv("JWT_SECRET", "devsecret")
 
-	// DB
-	d, err := db.OpenSQLite(dbPath)
-	if err != nil {
-		log.Fatalf("failed to connect database: %v", err)
-	}
+    // DB
+    // asegurar directorio
+    _ = os.MkdirAll("./data", 0755)
+    d, err := db.OpenSQLite(dbPath)
+    if err != nil {
+        log.Fatalf("failed to connect database: %v", err)
+    }
 	if err := db.AutoMigrate(d); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
@@ -42,9 +49,8 @@ func main() {
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{AllowOrigins: getenv("ALLOWED_ORIGINS", "http://localhost:4200")}))
 
-	// Rutas básicas
-	api := app.Group("/api/v1")
-	api.Get("/health", func(c *fiber.Ctx) error { return c.JSON(fiber.Map{"status": "ok"}) })
+    // Rutas
+    api.RegisterRoutes(app, d, jwtSecret)
 
 	// Start
 	log.Printf("server listening on :%s", port)

@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-login',
@@ -86,13 +87,26 @@ export class LoginPage {
   remember = true;
   showPwd = false;
   submitted = false;
+  loading = false;
+
+  constructor(private api: ApiService, private router: Router) {}
 
   isValidEmail(v: string): boolean { return /.+@.+\..+/.test(String(v||'').toLowerCase()); }
   isStrongPassword(v: string): boolean { return (v||'').length >= 8; }
 
-  onSubmit() {
+  async onSubmit() {
     this.submitted = true;
     if (!this.isValidEmail(this.email) || !this.isStrongPassword(this.password)) return;
-    alert('Login enviado');
+    try {
+      this.loading = true;
+      const res = await this.api.login({ email: this.email, password: this.password });
+      this.api.token = res?.token || null;
+      await this.router.navigateByUrl('/');
+    } catch (err: any) {
+      alert('Error al iniciar sesión');
+      console.error(err);
+    } finally {
+      this.loading = false;
+    }
   }
 }

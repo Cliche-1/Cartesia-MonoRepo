@@ -20,6 +20,7 @@ body {
   --color-muted: #bdb7e6;
   --color-accent: #e23bf0;
   --color-primary: #ffffff; /* boton primario claro (header/hero) */
+  --nav-height: 64px; /* altura de navbar para cálculos de vista */
 }
 
 :root {
@@ -73,3 +74,6 @@ label { display:grid; gap:6px; font-size: 13px; color: var(--color-muted); }
 
 /* Utilidades */
 .center { text-align: center; }
+
+/* Páginas estándar: asegurar altura mínima sin scroll extra */
+.page { min-height: calc(100svh - var(--nav-height)); }

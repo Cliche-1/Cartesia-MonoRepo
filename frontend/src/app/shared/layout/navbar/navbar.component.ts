@@ -123,7 +123,7 @@ import { RouterLink } from '@angular/router';
   `,
   styles: [
     `
-    .nav { position: relative; z-index: 10; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; padding: 16px 24px; backdrop-filter: blur(6px) saturate(115%); background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border-bottom: 1px solid rgba(255,255,255,.15); box-shadow: 0 8px 20px rgba(124,58,237,.08); }
+    .nav { position: sticky; top:0; z-index: 100; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; padding: 0 24px; height: var(--nav-height); backdrop-filter: blur(6px) saturate(115%); background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border-bottom: 1px solid rgba(255,255,255,.15); box-shadow: 0 8px 20px rgba(124,58,237,.08); }
     .brand { display:flex; align-items:center; gap:10px; font-weight:700; color: var(--color-text, #222); text-decoration: none; }
     .logo { width:28px; height:28px; border-radius:8px; display:block; box-shadow: 0 4px 12px rgba(167,139,250,.25); }
     .brand:hover .logo { filter: brightness(1.06); }
@@ -152,7 +152,7 @@ import { RouterLink } from '@angular/router';
     .pro-badge i { color: var(--tui-primary); }
 
     @media (max-width: 960px) {
-      .nav { grid-template-columns: auto auto; }
+      .nav { grid-template-columns: auto auto; padding: 0 12px; }
       .links { display:none; }
       .actions .ghost { display:none; }
     }

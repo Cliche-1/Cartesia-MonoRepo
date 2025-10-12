@@ -8,6 +8,8 @@ import { TutorRoadmapChatPage } from './pages/tutor/roadmap-chat.page';
 import { ProPlansPage } from './pages/pro/pro.page';
 import { RoadmapEditorPage } from './pages/editor/roadmap-editor.page';
 import { RoadmapPreviewPage } from './pages/preview/roadmap-preview.page';
+import { LoginPage } from './pages/auth/login.page';
+import { RegisterPage } from './pages/auth/register.page';
 
 export const routes: Routes = [
   { path: '', component: HomePage },
@@ -16,6 +18,8 @@ export const routes: Routes = [
   { path: 'roadmaps/comunidad', component: RoadmapsCommunityPage },
   { path: 'roadmaps/editor', component: RoadmapEditorPage },
   { path: 'roadmaps/preview', component: RoadmapPreviewPage },
+  { path: 'login', component: LoginPage },
+  { path: 'register', component: RegisterPage },
   { path: 'tutor/aprende', component: TutorLearnAIPage },
   { path: 'tutor/roadmap-chat', component: TutorRoadmapChatPage },
   { path: 'pro', component: ProPlansPage },

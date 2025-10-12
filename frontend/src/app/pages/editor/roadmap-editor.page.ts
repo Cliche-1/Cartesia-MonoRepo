@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Graph, Shape, Node } from '@antv/x6';
@@ -23,7 +23,7 @@ import { ApiService } from '../../services/api.service';
         <div class="left">
           <button type="button" class="tb-btn ghost" (click)="closeEditor()" title="Cerrar">✕</button>
           <div class="title-wrap">
-            <input class="title-input" type="text" [(ngModel)]="metaTitle" (ngModelChange)="saveMeta()" placeholder="Untitled roadmap" />
+            <input class="title-input" type="text" [(ngModel)]="metaTitle" (ngModelChange)="saveMeta()" placeholder="Roadmap sin título" />
             <button type="button" class="tb-btn icon" title="Editar">🖉</button>
             <button type="button" class="tb-btn icon" title="Opciones">⋯</button>
           </div>
@@ -31,16 +31,11 @@ import { ApiService } from '../../services/api.service';
         </div>
         <div class="right">
           <select class="visibility" [(ngModel)]="visibility" (ngModelChange)="saveMeta()" title="Visibilidad">
-            <option value="private">Only visible to me</option>
-            <option value="public">Public</option>
+            <option value="private">Solo visible para mí</option>
+            <option value="public">Público</option>
           </select>
-          <select class="lp-select" [(ngModel)]="learningPathId" title="LearningPath">
-            <option [ngValue]="null">LP: none</option>
-            <option *ngFor="let p of paths" [ngValue]="p.id">LP: {{p.title}}</option>
-          </select>
-          <button type="button" class="tb-btn link" (click)="loadFromBackend()" [disabled]="!learningPathId || loadingBackend">Load LP</button>
-          <button type="button" class="tb-btn link" (click)="previewRoadmap()">Live View</button>
-          <button type="button" class="tb-btn primary" (click)="saveAll()" [disabled]="savingBackend">Save Roadmap</button>
+          <button type="button" class="tb-btn link" (click)="previewRoadmap()">Previsualización</button>
+          <button type="button" class="tb-btn primary" (click)="saveAll()" [disabled]="savingBackend">Guardar</button>
         </div>
       </div>
       <!-- Sidebar izquierda colapsada -->
@@ -70,22 +65,22 @@ import { ApiService } from '../../services/api.service';
         <div class="flyout-content">
           <div class="components-list">
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'title')">
-              <i class="pi pi-heading"></i> <span>Title</span>
+              <i class="pi pi-book"></i> <span>Título</span>
             </div>
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'topic')">
-              <i class="pi pi-circle"></i> <span>Topic</span>
+              <i class="pi pi-circle"></i> <span>Tema</span>
             </div>
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'subtopic')">
-              <i class="pi pi-badge"></i> <span>Sub Topic</span>
+              <i class="pi pi-bookmark"></i> <span>Subtema</span>
             </div>
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'paragraph')">
-              <i class="pi pi-align-left"></i> <span>Paragraph</span>
+              <i class="pi pi-align-left"></i> <span>Párrafo</span>
             </div>
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'label')">
-              <span style="font-weight:600">Aa</span> <span>Label</span>
+              <i class="pi pi-tag"></i> <span>Etiqueta</span>
             </div>
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'section')">
-              <i class="pi pi-border"></i> <span>Section</span>
+              <i class="pi pi-folder-open"></i> <span>Sección</span>
             </div>
           </div>
         </div>
@@ -108,7 +103,7 @@ import { ApiService } from '../../services/api.service';
               <input type="text" [(ngModel)]="nodeName" (ngModelChange)="onNameChange()" placeholder="Nombre del nodo" />
             </label>
             <div class="opt-section">
-              <div class="opt-title">Font Size</div>
+              <div class="opt-title">Tamaño de fuente</div>
               <div class="opt-grid">
                 <button type="button" class="opt-btn" *ngFor="let fs of fontSizes"
                   [class.active]="activeFontSize===fs.size" (click)="setFontSize(fs.size)" [attr.aria-label]="fs.key">
@@ -120,7 +115,7 @@ import { ApiService } from '../../services/api.service';
             <hr class="opt-sep" />
 
             <div class="opt-section">
-              <div class="opt-title">Node Color</div>
+              <div class="opt-title">Color del nodo</div>
               <div class="opt-grid">
                 <button type="button" class="opt-btn color"
                   *ngFor="let c of colors" [class.active]="activeColor===c.key"
@@ -134,7 +129,7 @@ import { ApiService } from '../../services/api.service';
           <ng-container *ngIf="inspectorTab==='resources'">
             <label class="field">
               <span>Título</span>
-              <input type="text" [(ngModel)]="contentTitle" (ngModelChange)="onContentTitleChange()" placeholder="Enter Title" />
+              <input type="text" [(ngModel)]="contentTitle" (ngModelChange)="onContentTitleChange()" placeholder="Ingresa título" />
             </label>
             <label class="field">
               <span>Descripción</span>
@@ -146,8 +141,8 @@ import { ApiService } from '../../services/api.service';
                 <select [(ngModel)]="r.type" (ngModelChange)="onResourceChange(i, 'type', r.type)">
                   <option *ngFor="let t of resourceTypes" [value]="t">{{t}}</option>
                 </select>
-                <input type="text" [(ngModel)]="r.title" (ngModelChange)="onResourceChange(i, 'title', r.title)" placeholder="Resource Title" />
-                <input type="text" [(ngModel)]="r.url" (ngModelChange)="onResourceChange(i, 'url', r.url)" placeholder="Resource URL" />
+                <input type="text" [(ngModel)]="r.title" (ngModelChange)="onResourceChange(i, 'title', r.title)" placeholder="Título del recurso" />
+                <input type="text" [(ngModel)]="r.url" (ngModelChange)="onResourceChange(i, 'url', r.url)" placeholder="URL del recurso" />
                 <button type="button" class="remove" (click)="removeResource(i)">Eliminar</button>
               </div>
               <button type="button" class="add" (click)="addResource()">Añadir Enlace</button>
@@ -311,7 +306,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   contentTitle = '';
   contentDescription = '';
   resourceItems: { type: string; title: string; url: string }[] = [];
-  resourceTypes = ['Article', 'Video', 'Course', 'Docs', 'Tool', 'Other'];
+  resourceTypes = ['Artículo', 'Video', 'Curso', 'Documentación', 'Herramienta', 'Otro'];
 
   fontSizes = [
     { key: 'S', size: 12 },
@@ -336,9 +331,17 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   loadingBackend = false;
   savingBackend = false;
 
-  constructor(private router: Router, private api: ApiService) {}
+  constructor(private router: Router, private api: ApiService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
+    // Leer ?lp=ID desde la URL para fijar el roadmap a editar
+    const lpParam = this.route.snapshot.queryParamMap.get('lp');
+    if (lpParam) {
+      const parsed = Number(lpParam);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        this.learningPathId = parsed;
+      }
+    }
     this.fetchLearningPaths();
     // Cargar metadatos antes
     this.loadMeta();
@@ -676,7 +679,19 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   saveAll(): void {
     this.saveGraph();
     this.saveMeta();
-    if (this.learningPathId && this.api.isAuthenticated()) {
+    if (this.api.isAuthenticated()) {
+      // Si no hay LP seleccionado, crear uno primero
+      if (!this.learningPathId) {
+        const title = this.metaTitle || 'Roadmap';
+        const description = this.metaSubtitle || '';
+        this.api.createLearningPath({ title, description })
+          .then((lp) => {
+            this.learningPathId = lp?.id || null;
+            if (this.learningPathId) this.saveToBackend();
+          })
+          .catch((e) => console.error('Error creando roadmap', e));
+        return;
+      }
       this.saveToBackend();
     }
   }
@@ -694,6 +709,10 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       const list = await this.api.listLearningPaths();
       this.paths = (list || []).map((p: any) => ({ id: Number(p.id), title: String(p.title || '') }));
       if (!this.learningPathId && this.paths.length) this.learningPathId = this.paths[0].id;
+      // Si ya hay un LP seleccionado (por query param o por defecto), cargarlo
+      if (this.learningPathId) {
+        this.loadFromBackend();
+      }
     } catch (e) { console.error('Error al cargar roadmaps', e); }
   }
 
@@ -727,7 +746,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     // Guardar y navegar a la vista de previsualización
     this.saveGraph();
     this.saveMeta();
-    this.router.navigateByUrl('/roadmaps/preview');
+    window.open('/roadmaps/preview', '_blank');
   }
 
   closeEditor(): void {
@@ -744,16 +763,16 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
           shape: 'rect', width: 220, height: 64,
           attrs: {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 12, ry: 12 },
-            label: { text: 'Title', fontSize: 24, fontWeight: 700, fill: '#1f2937' },
+            label: { text: 'Título', fontSize: 24, fontWeight: 700, fill: '#1f2937' },
           },
-          data: { text: 'Title', type: 'title', contentTitle: '', contentDescription: '', resources: [] },
+          data: { text: 'Título', type: 'title', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'topic':
         return this.graph.createNode({
           shape: 'rect', width: 220, height: 80,
           attrs: {
             body: { fill: '#eef2ff', stroke: '#c7d2fe', rx: 12, ry: 12 },
-            label: { text: 'Topic', fontSize: 16, fontWeight: 600, fill: '#1f2937' },
+            label: { text: 'Tema', fontSize: 16, fontWeight: 600, fill: '#1f2937' },
           },
           ports: {
             groups: {
@@ -766,14 +785,14 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
               { group: 'top' }, { group: 'right' }, { group: 'bottom' }, { group: 'left' }
             ],
           },
-          data: { text: 'Topic', type: 'topic', contentTitle: '', contentDescription: '', resources: [] },
+          data: { text: 'Tema', type: 'topic', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'subtopic':
         return this.graph.createNode({
           shape: 'rect', width: 160, height: 56,
           attrs: {
             body: { fill: '#f5f3ff', stroke: '#ddd6fe', rx: 10, ry: 10, strokeDasharray: '2 2' },
-            label: { text: 'Sub Topic', fontSize: 14, fontWeight: 600, fill: '#1f2937' },
+            label: { text: 'Subtema', fontSize: 14, fontWeight: 600, fill: '#1f2937' },
           },
           ports: {
             groups: {
@@ -786,37 +805,37 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
               { group: 'top' }, { group: 'right' }, { group: 'bottom' }, { group: 'left' }
             ],
           },
-          data: { text: 'Sub Topic', type: 'subtopic', contentTitle: '', contentDescription: '', resources: [] },
+          data: { text: 'Subtema', type: 'subtopic', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'paragraph':
         return this.graph.createNode({
           shape: 'rect', width: 320, height: 120,
           attrs: {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 8, ry: 8 },
-            label: { text: 'Paragraph\nTexto de ejemplo', fontSize: 13, fontWeight: 500, fill: '#374151' },
+            label: { text: 'Párrafo\nTexto de ejemplo', fontSize: 13, fontWeight: 500, fill: '#374151' },
           },
-          data: { text: 'Paragraph', type: 'paragraph', contentTitle: '', contentDescription: '', resources: [] },
+          data: { text: 'Párrafo', type: 'paragraph', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'label':
         return this.graph.createNode({
           shape: 'rect', width: 120, height: 40,
           attrs: {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 999, ry: 999 },
-            label: { text: 'Label', fontSize: 13, fontWeight: 600, fill: '#111827' },
+            label: { text: 'Etiqueta', fontSize: 13, fontWeight: 600, fill: '#111827' },
           },
-          data: { text: 'Label', type: 'label', contentTitle: '', contentDescription: '', resources: [] },
+          data: { text: 'Etiqueta', type: 'label', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'section':
         return this.graph.createNode({
           shape: 'rect', width: 380, height: 220,
           attrs: {
             body: { fill: 'transparent', stroke: '#9ca3af', strokeDasharray: '6 4', rx: 12, ry: 12 },
-            label: { text: 'Section', fontSize: 12, fill: '#6b7280' },
+            label: { text: 'Sección', fontSize: 12, fill: '#6b7280' },
           },
-          data: { text: 'Section', type: 'section', contentTitle: '', contentDescription: '', resources: [] },
+          data: { text: 'Sección', type: 'section', contentTitle: '', contentDescription: '', resources: [] },
         });
       default:
-        return this.graph.createNode({ shape: 'rect', width: 100, height: 40, attrs: { label: { text: 'Item' } } });
+        return this.graph.createNode({ shape: 'rect', width: 100, height: 40, attrs: { label: { text: 'Elemento' } } });
     }
   }
 

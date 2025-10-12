@@ -24,6 +24,16 @@ func RegisterLearningPathRoutes(r fiber.Router, d *gorm.DB, jwtSecret string) {
         return c.JSON(lps)
     })
 
+    // Listar solo los creados por el usuario autenticado
+    r.Get("/learning-paths/mine", jwtMiddleware(jwtSecret), func(c *fiber.Ctx) error {
+        uid, _ := c.Locals("userID").(uint)
+        var lps []domain.LearningPath
+        if err := d.Where("created_by_id = ?", uid).Order("created_at DESC").Find(&lps).Error; err != nil {
+            return fiber.NewError(fiber.StatusInternalServerError, "Error BD")
+        }
+        return c.JSON(lps)
+    })
+
     // Crear (requiere auth)
     r.Post("/learning-paths", jwtMiddleware(jwtSecret), func(c *fiber.Ctx) error {
         uid, _ := c.Locals("userID").(uint)

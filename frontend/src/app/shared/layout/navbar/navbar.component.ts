@@ -136,15 +136,15 @@ import { ApiService } from '../../../services/api.service';
               <i class="pi pi-chevron-down caret"></i>
             </button>
             <div class="menu right" role="menu">
-              <a role="menuitem" routerLink="/" class="item">
+              <a role="menuitem" routerLink="/account" class="item">
                 <i class="pi pi-user"></i>
                 <span>Perfil</span>
               </a>
-              <a role="menuitem" routerLink="/" class="item">
+              <a role="menuitem" routerLink="/amigos" class="item">
                 <i class="pi pi-users"></i>
                 <span>Amigos</span>
               </a>
-              <a role="menuitem" routerLink="/roadmaps/comunidad" class="item">
+              <a role="menuitem" routerLink="/mis-roadmaps" class="item">
                 <i class="pi pi-list"></i>
                 <span>Mis roadmaps</span>
               </a>

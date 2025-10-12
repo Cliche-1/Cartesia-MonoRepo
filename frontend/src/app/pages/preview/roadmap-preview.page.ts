@@ -2,7 +2,7 @@ import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Graph, Node } from '@antv/x6';
-import { ApiService } from '../../services/api.service';
+// Backend controls removidos: preview solo usa datos locales
 
 @Component({
   selector: 'app-roadmap-preview',
@@ -13,14 +13,6 @@ import { ApiService } from '../../services/api.service';
       <header class="viewer-header">
         <h2>Previsualización del Roadmap</h2>
         <p>Vista estática e interactiva. Haz clic en un nodo para ver sus detalles.</p>
-        <div class="controls">
-          <label>
-            <span>ID del LearningPath</span>
-            <input type="number" [(ngModel)]="learningPathId" min="1" />
-          </label>
-          <button type="button" class="btn" (click)="loadFromBackend()" [disabled]="!learningPathId || loading">Cargar del backend</button>
-          <button type="button" class="btn primary" (click)="saveToBackend()" [disabled]="!learningPathId || !api.isAuthenticated() || saving">Guardar en backend</button>
-        </div>
       </header>
 
       <div class="viewer-wrap">
@@ -57,9 +49,6 @@ import { ApiService } from '../../services/api.service';
     .viewer { display:grid; gap:14px; padding:16px; color: var(--color-text); }
     .viewer-header h2 { margin:0; font-size:1.4rem; }
     .viewer-header p { margin:0; color: var(--color-muted); }
-    .controls { display:flex; gap:10px; align-items:center; margin-top:8px; }
-    .controls label { display:flex; align-items:center; gap:8px; }
-    .controls input { width:120px; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
     .btn { appearance:none; border:none; border-radius: 10px; font-weight:600; cursor:pointer; padding:8px 10px; background: rgba(255,255,255,.10); color: inherit; }
     .btn.primary { background: linear-gradient(90deg,#6d28d9,#5b21b6); color:#fff; border:1px solid rgba(255,255,255,.18); }
     .viewer-wrap { position:relative; }
@@ -89,11 +78,7 @@ export class RoadmapPreviewPage implements OnInit, OnDestroy {
   contentTitle = '';
   contentDescription = '';
   resources: { type: string; title: string; url: string }[] = [];
-  learningPathId: number | null = 1;
-  loading = false;
-  saving = false;
-
-  constructor(public api: ApiService) {}
+  constructor() {}
 
   ngOnInit(): void {
     this.graph = new Graph({
@@ -133,37 +118,7 @@ export class RoadmapPreviewPage implements OnInit, OnDestroy {
     } catch (e) { console.error('Error al cargar previsualización', e); }
   }
 
-  async loadFromBackend() {
-    if (!this.learningPathId) return;
-    try {
-      this.loading = true;
-      const data = await this.api.getDiagram(this.learningPathId);
-      this.graph?.clearCells();
-      // Se espera que el backend guarde el JSON de X6 directamente
-      this.graph?.fromJSON(data as any);
-      this.applySmoothConnectors();
-    } catch (e) {
-      console.error('Error al cargar desde backend', e);
-      alert('No se pudo cargar el diagrama');
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  async saveToBackend() {
-    if (!this.learningPathId) return;
-    try {
-      this.saving = true;
-      const json = this.graph?.toJSON() as any;
-      const ok = await this.api.updateDiagram(this.learningPathId, json);
-      if (ok) alert('Diagrama guardado en backend');
-    } catch (e) {
-      console.error('Error al guardar en backend', e);
-      alert('No se pudo guardar el diagrama');
-    } finally {
-      this.saving = false;
-    }
-  }
+  
 
   // Forzar renderizado curvo de las conexiones en la preview
   private applySmoothConnectors() {

@@ -43,16 +43,34 @@ export class ApiService {
 
   async getDiagram(learningPathId: number): Promise<DiagramData> {
     const url = `${this.baseUrl}/learning-paths/${learningPathId}/diagram`;
-    return await firstValueFrom(this.http.get<DiagramData>(url));
+    const res = await firstValueFrom(this.http.get<{ diagramJSON: string }>(url));
+    try {
+      const parsed = JSON.parse(res?.diagramJSON || '{"nodes":[],"edges":[]}');
+      return parsed as DiagramData;
+    } catch {
+      return { nodes: [], edges: [] };
+    }
   }
 
   async updateDiagram(learningPathId: number, diagram: DiagramData): Promise<boolean> {
     const url = `${this.baseUrl}/learning-paths/${learningPathId}/diagram`;
-    return await firstValueFrom(this.http.put<boolean>(url, diagram, { headers: this.authHeaders() }));
+    const payload = { diagramJSON: JSON.stringify(diagram) };
+    const res = await firstValueFrom(this.http.put<{ ok: boolean }>(url, payload, { headers: this.authHeaders() }));
+    return !!res?.ok;
   }
 
   async listLearningPaths(): Promise<LearningPath[]> {
     const url = `${this.baseUrl}/learning-paths`;
     return await firstValueFrom(this.http.get<LearningPath[]>(url));
+  }
+
+  async listMyLearningPaths(): Promise<LearningPath[]> {
+    const url = `${this.baseUrl}/learning-paths/mine`;
+    return await firstValueFrom(this.http.get<LearningPath[]>(url, { headers: this.authHeaders() }));
+  }
+
+  async createLearningPath(payload: { title: string; description?: string }): Promise<LearningPath> {
+    const url = `${this.baseUrl}/learning-paths`;
+    return await firstValueFrom(this.http.post<LearningPath>(url, payload, { headers: this.authHeaders() }));
   }
 }

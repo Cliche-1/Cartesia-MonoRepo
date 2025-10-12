@@ -1,4 +1,5 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Graph, Shape, Node } from '@antv/x6';
@@ -16,6 +17,26 @@ import { Snapline } from '@antv/x6-plugin-snapline';
   imports: [CommonModule, FormsModule],
   template: `
     <section class="editor">
+      <!-- Barra superior del editor -->
+      <div class="editor-topbar" role="toolbar" aria-label="Barra superior del editor">
+        <div class="left">
+          <button type="button" class="tb-btn ghost" (click)="closeEditor()" title="Cerrar">✕</button>
+          <div class="title-wrap">
+            <input class="title-input" type="text" [(ngModel)]="metaTitle" (ngModelChange)="saveMeta()" placeholder="Untitled roadmap" />
+            <button type="button" class="tb-btn icon" title="Editar">🖉</button>
+            <button type="button" class="tb-btn icon" title="Opciones">⋯</button>
+          </div>
+          <input class="subtitle-input" type="text" [(ngModel)]="metaSubtitle" (ngModelChange)="saveMeta()" placeholder="Añade una descripción" />
+        </div>
+        <div class="right">
+          <select class="visibility" [(ngModel)]="visibility" (ngModelChange)="saveMeta()" title="Visibilidad">
+            <option value="private">Only visible to me</option>
+            <option value="public">Public</option>
+          </select>
+          <button type="button" class="tb-btn link" (click)="previewRoadmap()">Live View</button>
+          <button type="button" class="tb-btn primary" (click)="saveAll()">Save Roadmap</button>
+        </div>
+      </div>
       <!-- Sidebar izquierda colapsada -->
       <aside class="sidebar" role="navigation" aria-label="Barra lateral del editor">
         <div class="nav-buttons" aria-label="Navegación del editor">
@@ -132,26 +153,49 @@ import { Snapline } from '@antv/x6-plugin-snapline';
       <!-- Canvas principal -->
       <div class="canvas-wrap" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
         <div #graphContainer class="graph" id="graph-container" (contextmenu)="onContextMenu($event)"></div>
-        <div class="canvas-toolbar" aria-label="Herramientas del lienzo">
-          <button class="tool" type="button" (click)="zoomOut()" aria-label="Alejar">−</button>
-          <button class="tool" type="button" (click)="zoomIn()" aria-label="Acercar">+</button>
-          <button class="tool" type="button" (click)="resetZoom()" aria-label="Restablecer zoom">100%</button>
-          <span class="spacer" aria-hidden="true"></span>
-          <button class="tool" type="button" (click)="saveGraph()" aria-label="Guardar">Guardar</button>
-          <button class="tool" type="button" (click)="loadGraph()" aria-label="Cargar">Cargar</button>
-        </div>
       </div>
     </section>
   `,
   styles: [
     `
-    .editor { position:relative; display:grid; grid-template-columns: 56px 1fr; height: calc(100vh - 72px); background: var(--color-bg); color: var(--color-text); }
+    .editor { position:relative; display:grid; grid-template-rows: 56px 1fr; grid-template-columns: 56px 1fr; height: 100vh; background: var(--color-bg); color: var(--color-text); }
+    .editor-topbar {
+      grid-row: 1;
+      grid-column: 1 / -1;
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 16px;
+      height: 56px;
+      border-radius: 0;
+      background: var(--color-bg-2, #0b1220);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: none;
+      z-index: 20;
+    }
+    .editor-topbar .left { display:flex; align-items:center; gap:10px; }
+    .editor-topbar .right { display:flex; align-items:center; gap:10px; }
+    .tb-btn { padding: 8px 12px; border:0; border-radius:10px; background: rgba(255,255,255,.08); color: inherit; cursor:pointer; }
+    .tb-btn:hover { background: rgba(255,255,255,.14); }
+    .tb-btn.ghost { background: transparent; border:1px solid rgba(255,255,255,.18); }
+    .tb-btn.icon { width:36px; height:36px; display:grid; place-items:center; }
+    .tb-btn.link { background: rgba(255,255,255,.06); }
+    .tb-btn.primary { background: #0b1220; color:#eef; border:1px solid rgba(255,255,255,.18); }
+    .title-wrap { display:flex; align-items:center; gap:8px; }
+    .title-input { width: 220px; max-width: 260px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; font-weight:700; }
+    .subtitle-input { width: 280px; max-width: 320px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
+    .visibility { padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
     .sidebar { width:56px; border-right: 1px solid rgba(255,255,255,.12); display:flex; flex-direction:column; align-items:center; gap: 8px; padding: 8px; }
     .nav-buttons { display:grid; gap:8px; }
     .nav-btn { width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.06); color: var(--color-text); cursor:pointer; display:grid; place-items:center; }
     .nav-btn:hover { background: rgba(255,255,255,.10); }
     .nav-btn.active { outline: 2px solid rgba(255,255,255,.2); }
-    .flyout-panel { position:absolute; left:56px; top:0; bottom:0; width:280px; z-index:10; border-right:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
+    .flyout-panel { position:absolute; left:56px; top:56px; bottom:12px; width:280px; z-index:10; border-right:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
     .flyout-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.12); }
     .flyout-header h3 { margin:0; font-size:.95rem; }
     .flyout-header .close { width:32px; height:32px; border:0; border-radius:8px; background: rgba(255,255,255,.06); color: inherit; cursor: pointer; }
@@ -162,7 +206,7 @@ import { Snapline } from '@antv/x6-plugin-snapline';
     .component-item:hover { background: rgba(255,255,255,.08); }
 
     /* Inspector derecho */
-    .inspector-panel { position:absolute; right:0; top:0; bottom:0; width:320px; z-index:10; border-left:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
+    .inspector-panel { position:absolute; right:12px; top:56px; bottom:12px; width:320px; z-index:10; border-left:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
     .flyout-header { padding:12px 14px; }
     .flyout-content { padding:12px; display:grid; gap:14px; }
     .field { display:grid; gap:8px; }
@@ -210,24 +254,9 @@ import { Snapline } from '@antv/x6-plugin-snapline';
     .links-list .add { width:100%; padding:10px 12px; border:0; border-radius:10px; background: rgba(255,255,255,.10); color: inherit; cursor:pointer; }
     .links-list .add:hover { background: rgba(255,255,255,.16); }
 
-    .canvas-wrap { position:relative; }
+    .canvas-wrap { position:relative; grid-row: 2; grid-column: 2; }
     .graph { width: 100%; height: 100%; background: #f7f7fb; }
-    .canvas-toolbar {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      background: rgba(17, 24, 39, .55);
-      border: 1px solid rgba(255,255,255,.12);
-      backdrop-filter: blur(6px) saturate(115%);
-    }
-    .tool { padding: 6px 10px; border: 0; border-radius: 8px; background: rgba(255,255,255,.06); color: inherit; cursor: pointer; }
-    .tool:hover { background: rgba(255,255,255,.12); }
-    .spacer { display:inline-block; width: 1px; height: 24px; background: rgba(255,255,255,.12); margin: 0 4px; }
+    /* Mini toolbar removida para usar solo la barra superior */
     
     /* Ajustes X6 para replicar Example.js */
     .x6-widget-transform {
@@ -258,8 +287,13 @@ import { Snapline } from '@antv/x6-plugin-snapline';
 })
 export class RoadmapEditorPage implements OnInit, OnDestroy {
   @ViewChild('graphContainer', { static: true }) graphEl!: ElementRef<HTMLDivElement>;
+  constructor(private router: Router) {}
   private graph!: Graph;
   private dnd!: Dnd;
+  // Metadatos del roadmap
+  metaTitle = 'Roadmap';
+  metaSubtitle = '';
+  visibility: 'private' | 'public' = 'private';
   panel: 'components' | 'tools' | 'search' | 'settings' | null = null;
   inspectorOpen = false;
   selectedNode?: Node;
@@ -292,6 +326,8 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
+    // Cargar metadatos antes
+    this.loadMeta();
     this.graph = new Graph({
       container: this.graphEl.nativeElement,
       grid: true,
@@ -607,6 +643,26 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       localStorage.setItem('roadmap-editor-graph', JSON.stringify(data));
     } catch (e) { console.error('Error al guardar el roadmap', e); }
   }
+  saveMeta(): void {
+    try {
+      const meta = { title: this.metaTitle, subtitle: this.metaSubtitle, visibility: this.visibility };
+      localStorage.setItem('roadmap-editor-meta', JSON.stringify(meta));
+    } catch (e) { console.error('Error al guardar metadatos', e); }
+  }
+  loadMeta(): void {
+    try {
+      const str = localStorage.getItem('roadmap-editor-meta');
+      if (!str) return;
+      const meta = JSON.parse(str);
+      this.metaTitle = String(meta.title || this.metaTitle);
+      this.metaSubtitle = String(meta.subtitle || '');
+      this.visibility = (meta.visibility === 'public' ? 'public' : 'private');
+    } catch (e) { console.error('Error al cargar metadatos', e); }
+  }
+  saveAll(): void {
+    this.saveGraph();
+    this.saveMeta();
+  }
   loadGraph(): void {
     try {
       const str = localStorage.getItem('roadmap-editor-graph');
@@ -614,6 +670,17 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       const data = JSON.parse(str);
       this.graph?.fromJSON(data);
     } catch (e) { console.error('Error al cargar el roadmap', e); }
+  }
+
+  previewRoadmap(): void {
+    // Guardar y navegar a la vista de previsualización
+    this.saveGraph();
+    this.saveMeta();
+    this.router.navigateByUrl('/roadmaps/preview');
+  }
+
+  closeEditor(): void {
+    this.router.navigateByUrl('/');
   }
 
   onDragOver(e: DragEvent) { e.preventDefault(); }

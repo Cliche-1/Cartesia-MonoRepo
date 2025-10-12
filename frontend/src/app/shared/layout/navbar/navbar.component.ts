@@ -10,7 +10,19 @@ import { RouterLink } from '@angular/router';
     <header class="nav">
       <!-- Brand -->
       <a class="brand" routerLink="/" aria-label="Ir al inicio">
-        <span class="logo">◆</span>
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="cartesiaGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#c084fc"/>
+              <stop offset="100%" stop-color="#a78bfa"/>
+            </linearGradient>
+          </defs>
+          <!-- Fondo cuadrado redondeado -->
+          <rect x="4" y="4" width="56" height="56" rx="12" fill="url(#cartesiaGrad)"/>
+          <!-- Símbolo C estilizado (negativo sobre el fondo) -->
+          <path d="M44 20c-8 0-14 6-14 12s6 12 14 12h-6c-6 0-12-6-12-12s6-12 12-12h6z" fill="#ffffff"/>
+          <path d="M40 24c-6 0-10 4-10 8s4 8 10 8h-4c-4 0-8-4-8-8s4-8 8-8h4z" fill="url(#cartesiaGrad)" opacity=".18"/>
+        </svg>
         <span class="name">Cartesia</span>
       </a>
 
@@ -113,8 +125,9 @@ import { RouterLink } from '@angular/router';
     `
     .nav { position: relative; z-index: 10; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; padding: 16px 24px; backdrop-filter: blur(6px) saturate(115%); background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border-bottom: 1px solid rgba(255,255,255,.15); box-shadow: 0 8px 20px rgba(124,58,237,.08); }
     .brand { display:flex; align-items:center; gap:10px; font-weight:700; color: var(--color-text, #222); text-decoration: none; }
-    .logo { display:inline-grid; place-items:center; width:28px; height:28px; border-radius:8px; background: linear-gradient(135deg, #7c3aed 0%, #e23bf0 100%); color:#fff; font-size:16px; }
-    .name { font-family: 'Montserrat', sans-serif; letter-spacing:.2px; }
+    .logo { width:28px; height:28px; border-radius:8px; display:block; box-shadow: 0 4px 12px rgba(167,139,250,.25); }
+    .brand:hover .logo { filter: brightness(1.06); }
+    .name { font-family: 'Montserrat', sans-serif; letter-spacing:.2px; background: linear-gradient(135deg, #c084fc, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
     .links { display:flex; align-items:center; justify-content:flex-start; gap: 16px; padding: 0; margin: 0; }
     .dropdown { position: relative; }

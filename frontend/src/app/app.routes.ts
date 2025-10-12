@@ -7,6 +7,7 @@ import { TutorLearnAIPage } from './pages/tutor/learn.page';
 import { TutorRoadmapChatPage } from './pages/tutor/roadmap-chat.page';
 import { ProPlansPage } from './pages/pro/pro.page';
 import { RoadmapEditorPage } from './pages/editor/roadmap-editor.page';
+import { RoadmapPreviewPage } from './pages/preview/roadmap-preview.page';
 
 export const routes: Routes = [
   { path: '', component: HomePage },
@@ -14,6 +15,7 @@ export const routes: Routes = [
   { path: 'roadmaps/ia', component: RoadmapsAIPage },
   { path: 'roadmaps/comunidad', component: RoadmapsCommunityPage },
   { path: 'roadmaps/editor', component: RoadmapEditorPage },
+  { path: 'roadmaps/preview', component: RoadmapPreviewPage },
   { path: 'tutor/aprende', component: TutorLearnAIPage },
   { path: 'tutor/roadmap-chat', component: TutorRoadmapChatPage },
   { path: 'pro', component: ProPlansPage },

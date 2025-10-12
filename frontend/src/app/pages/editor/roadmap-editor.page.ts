@@ -67,36 +67,65 @@ import { Snapline } from '@antv/x6-plugin-snapline';
       <!-- Inspector derecho: editar nombre del nodo seleccionado -->
       <div class="inspector-panel" role="complementary" *ngIf="inspectorOpen && selectedNode">
         <header class="flyout-header">
-          <h3>Propiedades del Nodo</h3>
+          <h3>Editor</h3>
           <button class="close" type="button" (click)="closeInspector()" aria-label="Cerrar">✕</button>
         </header>
+        <div class="tabs">
+          <button type="button" class="tab" [class.active]="inspectorTab==='properties'" (click)="inspectorTab='properties'">Propiedades</button>
+          <button type="button" class="tab" [class.active]="inspectorTab==='resources'" (click)="inspectorTab='resources'">Recursos</button>
+        </div>
         <div class="flyout-content">
-          <label class="field">
-            <span>Nombre</span>
-            <input type="text" [(ngModel)]="nodeName" (ngModelChange)="onNameChange()" placeholder="Nombre del nodo" />
-          </label>
-          <div class="opt-section">
-            <div class="opt-title">Font Size</div>
-            <div class="opt-grid">
-              <button type="button" class="opt-btn" *ngFor="let fs of fontSizes"
-                [class.active]="activeFontSize===fs.size" (click)="setFontSize(fs.size)" [attr.aria-label]="fs.key">
-                {{fs.key}}
-              </button>
+          <ng-container *ngIf="inspectorTab==='properties'">
+            <label class="field">
+              <span>Nombre</span>
+              <input type="text" [(ngModel)]="nodeName" (ngModelChange)="onNameChange()" placeholder="Nombre del nodo" />
+            </label>
+            <div class="opt-section">
+              <div class="opt-title">Font Size</div>
+              <div class="opt-grid">
+                <button type="button" class="opt-btn" *ngFor="let fs of fontSizes"
+                  [class.active]="activeFontSize===fs.size" (click)="setFontSize(fs.size)" [attr.aria-label]="fs.key">
+                  {{fs.key}}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <hr class="opt-sep" />
+            <hr class="opt-sep" />
 
-          <div class="opt-section">
-            <div class="opt-title">Node Color</div>
-            <div class="opt-grid">
-              <button type="button" class="opt-btn color"
-                *ngFor="let c of colors" [class.active]="activeColor===c.key"
-                [style.background]="c.hex" (click)="setNodeColor(c.key)" [attr.aria-label]="c.key">
-                {{c.key}}
-              </button>
+            <div class="opt-section">
+              <div class="opt-title">Node Color</div>
+              <div class="opt-grid">
+                <button type="button" class="opt-btn color"
+                  *ngFor="let c of colors" [class.active]="activeColor===c.key"
+                  [style.background]="c.hex" (click)="setNodeColor(c.key)" [attr.aria-label]="c.key">
+                  {{c.key}}
+                </button>
+              </div>
             </div>
-          </div>
+          </ng-container>
+
+          <ng-container *ngIf="inspectorTab==='resources'">
+            <label class="field">
+              <span>Título</span>
+              <input type="text" [(ngModel)]="contentTitle" (ngModelChange)="onContentTitleChange()" placeholder="Enter Title" />
+            </label>
+            <label class="field">
+              <span>Descripción</span>
+              <textarea rows="6" [(ngModel)]="contentDescription" (ngModelChange)="onContentDescChange()" placeholder=""></textarea>
+            </label>
+
+            <div class="links-list">
+              <div class="link-card" *ngFor="let r of resourceItems; let i = index">
+                <select [(ngModel)]="r.type" (ngModelChange)="onResourceChange(i, 'type', r.type)">
+                  <option *ngFor="let t of resourceTypes" [value]="t">{{t}}</option>
+                </select>
+                <input type="text" [(ngModel)]="r.title" (ngModelChange)="onResourceChange(i, 'title', r.title)" placeholder="Resource Title" />
+                <input type="text" [(ngModel)]="r.url" (ngModelChange)="onResourceChange(i, 'url', r.url)" placeholder="Resource URL" />
+                <button type="button" class="remove" (click)="removeResource(i)">Eliminar</button>
+              </div>
+              <button type="button" class="add" (click)="addResource()">Añadir Enlace</button>
+            </div>
+          </ng-container>
         </div>
       </div>
 
@@ -133,20 +162,53 @@ import { Snapline } from '@antv/x6-plugin-snapline';
     .component-item:hover { background: rgba(255,255,255,.08); }
 
     /* Inspector derecho */
-    .inspector-panel { position:absolute; right:0; top:0; bottom:0; width:280px; z-index:10; border-left:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
-    .field { display:grid; gap:6px; }
-    .field input { width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
-    .field input:focus { outline: 2px solid rgba(255,255,255,.25); }
+    .inspector-panel { position:absolute; right:0; top:0; bottom:0; width:320px; z-index:10; border-left:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
+    .flyout-header { padding:12px 14px; }
+    .flyout-content { padding:12px; display:grid; gap:14px; }
+    .field { display:grid; gap:8px; }
+    .field span { font-size:.82rem; color:#cbd5e1; letter-spacing:.02em; }
+    .field input, .field textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; transition: box-shadow .15s ease, border-color .15s ease; }
+    .field input:focus, .field textarea:focus { outline: 0; border-color: rgba(255,255,255,.28); box-shadow: 0 0 0 3px rgba(255,255,255,.12); }
+    .field textarea { min-height:120px; resize: vertical; }
 
     /* Inspector options */
-    .opt-section { display:grid; gap:8px; margin-top:12px; }
+    .opt-section { display:grid; gap:10px; margin-top:6px; }
     .opt-title { font-size:.8rem; color: #cbd5e1; text-transform: uppercase; letter-spacing: .04em; }
-    .opt-grid { display:flex; flex-wrap:wrap; gap:8px; }
-    .opt-btn { min-width:40px; height:32px; padding:0 10px; border:0; border-radius:8px; background: rgba(255,255,255,.08); color: inherit; cursor:pointer; font-weight:600; }
+    .opt-grid { display:flex; flex-wrap:wrap; gap:10px; }
+    .opt-btn { min-width:44px; height:34px; padding:0 12px; border:0; border-radius:10px; background: rgba(255,255,255,.08); color: inherit; cursor:pointer; font-weight:600; }
     .opt-btn:hover { background: rgba(255,255,255,.14); }
-    .opt-btn.active { outline: 2px solid rgba(255,255,255,.25); }
+    .opt-btn.active { outline: 2px solid rgba(255,255,255,.22); }
     .opt-btn.color { color:#111827; }
-    .opt-sep { border:0; border-top:1px solid rgba(255,255,255,.12); margin:12px 0; }
+    .opt-sep { border:0; border-top:1px solid rgba(255,255,255,.12); margin:8px 0; }
+
+    /* Tabs */
+    .tabs { display:flex; gap:8px; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.12); justify-content:center; }
+    .tab { padding:8px 14px; border:0; border-radius:999px; background: rgba(255,255,255,.10); color: inherit; cursor:pointer; font-weight:600; }
+    .tab.active { background: rgba(255,255,255,.20); box-shadow: 0 6px 14px rgba(0,0,0,.18) inset; }
+
+    /* Resources */
+    .links-list { display:grid; gap:12px; margin-top:6px; }
+    .link-card { display:grid; gap:10px; padding:12px; border-radius:12px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); }
+    .link-card select, .link-card input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); color: inherit; }
+    .link-card select {
+      appearance: none;
+      background-color: #0b1220;
+      color: #e5e7eb;
+      border-color: #334155;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .link-card select:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96,165,250,.25);
+    }
+    .link-card select option { background: #0b1220; color: #e5e7eb; }
+    .link-card .remove { width:100%; padding:10px 12px; border:0; border-radius:10px; background: rgba(244,63,94,.18); color:#fee; cursor:pointer; }
+    .link-card .remove:hover { background: rgba(244,63,94,.28); }
+    .links-list .add { width:100%; padding:10px 12px; border:0; border-radius:10px; background: rgba(255,255,255,.10); color: inherit; cursor:pointer; }
+    .links-list .add:hover { background: rgba(255,255,255,.16); }
 
     .canvas-wrap { position:relative; }
     .graph { width: 100%; height: 100%; background: #f7f7fb; }
@@ -202,8 +264,14 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   inspectorOpen = false;
   selectedNode?: Node;
   nodeName = '';
+  inspectorTab: 'properties' | 'resources' = 'properties';
   activeFontSize?: number;
   activeColor?: string;
+
+  contentTitle = '';
+  contentDescription = '';
+  resourceItems: { type: string; title: string; url: string }[] = [];
+  resourceTypes = ['Article', 'Video', 'Course', 'Docs', 'Tool', 'Other'];
 
   fontSizes = [
     { key: 'S', size: 12 },
@@ -434,6 +502,32 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     this.selectedNode.setData({ ...(this.selectedNode.getData() || {}), text: this.nodeName });
   }
 
+  onContentTitleChange() {
+    if (!this.selectedNode) return;
+    this.patchNodeData({ contentTitle: this.contentTitle });
+  }
+  onContentDescChange() {
+    if (!this.selectedNode) return;
+    this.patchNodeData({ contentDescription: this.contentDescription });
+  }
+  addResource() {
+    this.resourceItems = [
+      ...this.resourceItems,
+      { type: 'Article', title: '', url: '' }
+    ];
+    this.persistResources();
+  }
+  removeResource(i: number) {
+    this.resourceItems = this.resourceItems.filter((_, idx) => idx !== i);
+    this.persistResources();
+  }
+  onResourceChange(i: number, field: 'type' | 'title' | 'url', value: string) {
+    const next = [...this.resourceItems];
+    (next[i] as any)[field] = value;
+    this.resourceItems = next;
+    this.persistResources();
+  }
+
   setFontSize(size: number) {
     if (!this.selectedNode) return;
     this.selectedNode.attr('label/fontSize', size);
@@ -472,6 +566,11 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     const fill = String(node.attr('body/fill') || '');
     const foundColor = this.colors.find(c => c.hex.toLowerCase() === fill.toLowerCase());
     this.activeColor = foundColor?.key;
+
+    const d = node.getData() || {};
+    this.contentTitle = String(d.contentTitle || '');
+    this.contentDescription = String(d.contentDescription || '');
+    this.resourceItems = Array.isArray(d.resources) ? d.resources.map((r: any) => ({ type: String(r.type||'Article'), title: String(r.title||''), url: String(r.url||'') })) : [];
   }
 
   private defaultFontSize(node: Node): number {
@@ -485,6 +584,15 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       case 'section': return 12;
       default: return 14;
     }
+  }
+
+  private patchNodeData(patch: Record<string, any>) {
+    if (!this.selectedNode) return;
+    const current = this.selectedNode.getData() || {};
+    this.selectedNode.setData({ ...current, ...patch });
+  }
+  private persistResources() {
+    this.patchNodeData({ resources: this.resourceItems });
   }
 
   // Controles de zoom
@@ -520,7 +628,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 12, ry: 12 },
             label: { text: 'Title', fontSize: 24, fontWeight: 700, fill: '#1f2937' },
           },
-          data: { text: 'Title', type: 'title' },
+          data: { text: 'Title', type: 'title', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'topic':
         return this.graph.createNode({
@@ -540,7 +648,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
               { group: 'top' }, { group: 'right' }, { group: 'bottom' }, { group: 'left' }
             ],
           },
-          data: { text: 'Topic', type: 'topic' },
+          data: { text: 'Topic', type: 'topic', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'subtopic':
         return this.graph.createNode({
@@ -560,7 +668,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
               { group: 'top' }, { group: 'right' }, { group: 'bottom' }, { group: 'left' }
             ],
           },
-          data: { text: 'Sub Topic', type: 'subtopic' },
+          data: { text: 'Sub Topic', type: 'subtopic', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'paragraph':
         return this.graph.createNode({
@@ -569,7 +677,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 8, ry: 8 },
             label: { text: 'Paragraph\nTexto de ejemplo', fontSize: 13, fontWeight: 500, fill: '#374151' },
           },
-          data: { text: 'Paragraph', type: 'paragraph' },
+          data: { text: 'Paragraph', type: 'paragraph', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'label':
         return this.graph.createNode({
@@ -578,7 +686,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 999, ry: 999 },
             label: { text: 'Label', fontSize: 13, fontWeight: 600, fill: '#111827' },
           },
-          data: { text: 'Label', type: 'label' },
+          data: { text: 'Label', type: 'label', contentTitle: '', contentDescription: '', resources: [] },
         });
       case 'section':
         return this.graph.createNode({
@@ -587,7 +695,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: 'transparent', stroke: '#9ca3af', strokeDasharray: '6 4', rx: 12, ry: 12 },
             label: { text: 'Section', fontSize: 12, fill: '#6b7280' },
           },
-          data: { text: 'Section', type: 'section' },
+          data: { text: 'Section', type: 'section', contentTitle: '', contentDescription: '', resources: [] },
         });
       default:
         return this.graph.createNode({ shape: 'rect', width: 100, height: 40, attrs: { label: { text: 'Item' } } });

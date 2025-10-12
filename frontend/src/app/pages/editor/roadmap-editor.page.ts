@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Graph, Shape } from '@antv/x6';
+import { FormsModule } from '@angular/forms';
+import { Graph, Shape, Node } from '@antv/x6';
 import { Dnd } from '@antv/x6-plugin-dnd';
 import { Keyboard } from '@antv/x6-plugin-keyboard';
 import { Clipboard } from '@antv/x6-plugin-clipboard';
@@ -12,13 +13,13 @@ import { Snapline } from '@antv/x6-plugin-snapline';
 @Component({
   selector: 'app-roadmap-editor',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="editor">
-      <!-- Sidebar izquierda -->
+      <!-- Sidebar izquierda colapsada -->
       <aside class="sidebar" role="navigation" aria-label="Barra lateral del editor">
         <div class="nav-buttons" aria-label="Navegación del editor">
-          <button class="nav-btn" [class.active]="panel==='components'" (click)="panel='components'" title="Componentes" [attr.aria-pressed]="panel==='components'">
+          <button class="nav-btn" [class.active]="panel==='components'" (click)="togglePanel('components')" title="Componentes" [attr.aria-pressed]="panel==='components'">
             <i class="pi pi-palette"></i>
           </button>
           <button class="nav-btn" title="Herramientas" disabled>
@@ -31,10 +32,15 @@ import { Snapline } from '@antv/x6-plugin-snapline';
             <i class="pi pi-cog"></i>
           </button>
         </div>
+      </aside>
 
-        <!-- Panel desplegable de componentes -->
-        <div class="components-panel" role="complementary" [attr.aria-expanded]="panel==='components'" *ngIf="panel==='components'">
-          <div class="panel-title">COMPONENTS (DRAG & DROP)</div>
+      <!-- Flyout a la derecha del sidebar -->
+      <div class="flyout-panel" role="complementary" *ngIf="panel==='components'" [attr.aria-expanded]="panel==='components'">
+        <header class="flyout-header">
+          <h3>Componentes</h3>
+          <button class="close" type="button" (click)="closePanel()" aria-label="Cerrar">✕</button>
+        </header>
+        <div class="flyout-content">
           <div class="components-list">
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'title')">
               <i class="pi pi-heading"></i> <span>Title</span>
@@ -56,11 +62,25 @@ import { Snapline } from '@antv/x6-plugin-snapline';
             </div>
           </div>
         </div>
-      </aside>
+      </div>
+
+      <!-- Inspector derecho: editar nombre del nodo seleccionado -->
+      <div class="inspector-panel" role="complementary" *ngIf="inspectorOpen && selectedNode">
+        <header class="flyout-header">
+          <h3>Propiedades del Nodo</h3>
+          <button class="close" type="button" (click)="closeInspector()" aria-label="Cerrar">✕</button>
+        </header>
+        <div class="flyout-content">
+          <label class="field">
+            <span>Nombre</span>
+            <input type="text" [(ngModel)]="nodeName" (ngModelChange)="onNameChange()" placeholder="Nombre del nodo" />
+          </label>
+        </div>
+      </div>
 
       <!-- Canvas principal -->
       <div class="canvas-wrap" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
-        <div #graphContainer class="graph" id="graph-container"></div>
+        <div #graphContainer class="graph" id="graph-container" (contextmenu)="onContextMenu($event)"></div>
         <div class="canvas-toolbar" aria-label="Herramientas del lienzo">
           <button class="tool" type="button" (click)="zoomOut()" aria-label="Alejar">−</button>
           <button class="tool" type="button" (click)="zoomIn()" aria-label="Acercar">+</button>
@@ -74,17 +94,27 @@ import { Snapline } from '@antv/x6-plugin-snapline';
   `,
   styles: [
     `
-    .editor { display:grid; grid-template-columns: 280px 1fr; height: calc(100vh - 72px); background: var(--color-bg); color: var(--color-text); }
-    .sidebar { border-right: 1px solid rgba(255,255,255,.12); display:flex; flex-direction:column; gap: 12px; padding: 12px; }
-    .nav-buttons { display:grid; gap:10px; }
-    .nav-btn { border:0; border-radius:10px; background: rgba(255,255,255,.06); color: var(--color-text); padding: 10px; cursor:pointer; }
+    .editor { position:relative; display:grid; grid-template-columns: 56px 1fr; height: calc(100vh - 72px); background: var(--color-bg); color: var(--color-text); }
+    .sidebar { width:56px; border-right: 1px solid rgba(255,255,255,.12); display:flex; flex-direction:column; align-items:center; gap: 8px; padding: 8px; }
+    .nav-buttons { display:grid; gap:8px; }
+    .nav-btn { width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.06); color: var(--color-text); cursor:pointer; display:grid; place-items:center; }
     .nav-btn:hover { background: rgba(255,255,255,.10); }
     .nav-btn.active { outline: 2px solid rgba(255,255,255,.2); }
-    .components-panel { background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:12px; }
-    .panel-title { font-size:.85rem; color: var(--color-muted); padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.12); }
-    .components-list { display:grid; gap:8px; padding: 10px; }
+    .flyout-panel { position:absolute; left:56px; top:0; bottom:0; width:280px; z-index:10; border-right:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
+    .flyout-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.12); }
+    .flyout-header h3 { margin:0; font-size:.95rem; }
+    .flyout-header .close { width:32px; height:32px; border:0; border-radius:8px; background: rgba(255,255,255,.06); color: inherit; cursor: pointer; }
+    .flyout-header .close:hover { background: rgba(255,255,255,.12); }
+    .flyout-content { padding:10px; }
+    .components-list { display:grid; gap:8px; }
     .component-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:grab; }
     .component-item:hover { background: rgba(255,255,255,.08); }
+
+    /* Inspector derecho */
+    .inspector-panel { position:absolute; right:0; top:0; bottom:0; width:280px; z-index:10; border-left:1px solid rgba(255,255,255,.12); background: var(--color-bg-2, #0f172a); color: var(--color-text); box-shadow: 0 22px 40px rgba(16,10,43,.35); }
+    .field { display:grid; gap:6px; }
+    .field input { width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
+    .field input:focus { outline: 2px solid rgba(255,255,255,.25); }
 
     .canvas-wrap { position:relative; }
     .graph { width: 100%; height: 100%; background: #f7f7fb; }
@@ -136,14 +166,18 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   @ViewChild('graphContainer', { static: true }) graphEl!: ElementRef<HTMLDivElement>;
   private graph!: Graph;
   private dnd!: Dnd;
-  panel: 'components' | 'tools' | 'search' | 'settings' = 'components';
+  panel: 'components' | 'tools' | 'search' | 'settings' | null = null;
+  inspectorOpen = false;
+  selectedNode?: Node;
+  nodeName = '';
 
   ngOnInit(): void {
     this.graph = new Graph({
       container: this.graphEl.nativeElement,
       grid: true,
       background: { color: '#f7f7fb' },
-      panning: true,
+      // Panning solo con botón derecho
+      panning: { enabled: true, eventTypes: ['rightMouseDown'] },
       mousewheel: { enabled: true, zoomAtMousePosition: true, modifiers: ['ctrl'], minScale: 0.5, maxScale: 3 },
       // selección y transformación se controlan por plugins
       connecting: {
@@ -183,7 +217,16 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     this.graph.use(new Clipboard());
     this.graph.use(new History());
     this.graph.use(new Selection({ enabled: true, rubberband: true, showNodeSelectionBox: true }));
-    this.graph.use(new Transform({ resizing: true, rotating: true }));
+    // Desactivar el resizing manual para nodos de tipo 'topic' y 'subtopic'
+    this.graph.use(new Transform({
+      resizing: {
+        enabled: function(node: Node) {
+          const t = node?.getData()?.type;
+          return t !== 'topic' && t !== 'subtopic';
+        }
+      },
+      rotating: true,
+    }));
     this.graph.use(new Snapline({ enabled: true }));
     // Inicializar DnD
     this.dnd = new Dnd({ target: this.graph });
@@ -213,6 +256,28 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
         node.setData({ ...(node.getData() || {}), text: next });
       }
     });
+
+    // Abrir inspector al seleccionar nodo; cerrar al deseleccionar
+    this.graph.on('node:selected', ({ node }) => {
+      this.selectedNode = node as Node;
+      this.nodeName = String(node.attr('label/text') || node.getData()?.text || '');
+      this.inspectorOpen = true;
+    });
+    this.graph.on('node:unselected', () => {
+      const cells = this.graph.getSelectedCells();
+      if (!cells.length) {
+        this.selectedNode = undefined;
+        this.inspectorOpen = false;
+      } else {
+        const first = cells[0];
+        if (first.isNode()) {
+          this.selectedNode = first as Node;
+          this.nodeName = String((first as Node).attr('label/text') || (first as Node).getData()?.text || '');
+          this.inspectorOpen = true;
+        }
+      }
+    });
+    this.graph.on('blank:click', () => { this.selectedNode = undefined; this.inspectorOpen = false; });
 
     // Estilizar aristas según tipo de conexión: topic-topic sólido, topic-subtopic punteado
     this.graph.on('edge:connected', ({ edge }) => {
@@ -283,6 +348,20 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     if (!this.graph) return;
     const node = this.createNodeByType(type);
     this.dnd.start(node, e);
+  }
+
+  onContextMenu(e: MouseEvent) { e.preventDefault(); }
+
+  togglePanel(next: 'components' | 'tools' | 'search' | 'settings') {
+    this.panel = this.panel === next ? null : next;
+  }
+  closePanel() { this.panel = null; }
+
+  closeInspector() { this.inspectorOpen = false; }
+  onNameChange() {
+    if (!this.selectedNode) return;
+    this.selectedNode.attr('label/text', this.nodeName);
+    this.selectedNode.setData({ ...(this.selectedNode.getData() || {}), text: this.nodeName });
   }
 
   // Controles de zoom

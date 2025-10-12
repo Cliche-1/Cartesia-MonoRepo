@@ -75,6 +75,28 @@ import { Snapline } from '@antv/x6-plugin-snapline';
             <span>Nombre</span>
             <input type="text" [(ngModel)]="nodeName" (ngModelChange)="onNameChange()" placeholder="Nombre del nodo" />
           </label>
+          <div class="opt-section">
+            <div class="opt-title">Font Size</div>
+            <div class="opt-grid">
+              <button type="button" class="opt-btn" *ngFor="let fs of fontSizes"
+                [class.active]="activeFontSize===fs.size" (click)="setFontSize(fs.size)" [attr.aria-label]="fs.key">
+                {{fs.key}}
+              </button>
+            </div>
+          </div>
+
+          <hr class="opt-sep" />
+
+          <div class="opt-section">
+            <div class="opt-title">Node Color</div>
+            <div class="opt-grid">
+              <button type="button" class="opt-btn color"
+                *ngFor="let c of colors" [class.active]="activeColor===c.key"
+                [style.background]="c.hex" (click)="setNodeColor(c.key)" [attr.aria-label]="c.key">
+                {{c.key}}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -115,6 +137,16 @@ import { Snapline } from '@antv/x6-plugin-snapline';
     .field { display:grid; gap:6px; }
     .field input { width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: inherit; }
     .field input:focus { outline: 2px solid rgba(255,255,255,.25); }
+
+    /* Inspector options */
+    .opt-section { display:grid; gap:8px; margin-top:12px; }
+    .opt-title { font-size:.8rem; color: #cbd5e1; text-transform: uppercase; letter-spacing: .04em; }
+    .opt-grid { display:flex; flex-wrap:wrap; gap:8px; }
+    .opt-btn { min-width:40px; height:32px; padding:0 10px; border:0; border-radius:8px; background: rgba(255,255,255,.08); color: inherit; cursor:pointer; font-weight:600; }
+    .opt-btn:hover { background: rgba(255,255,255,.14); }
+    .opt-btn.active { outline: 2px solid rgba(255,255,255,.25); }
+    .opt-btn.color { color:#111827; }
+    .opt-sep { border:0; border-top:1px solid rgba(255,255,255,.12); margin:12px 0; }
 
     .canvas-wrap { position:relative; }
     .graph { width: 100%; height: 100%; background: #f7f7fb; }
@@ -170,6 +202,26 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   inspectorOpen = false;
   selectedNode?: Node;
   nodeName = '';
+  activeFontSize?: number;
+  activeColor?: string;
+
+  fontSizes = [
+    { key: 'S', size: 12 },
+    { key: 'M', size: 14 },
+    { key: 'L', size: 16 },
+    { key: 'XL', size: 20 },
+    { key: 'XXL', size: 24 },
+  ];
+  colors = [
+    { key: 'A', hex: '#111827' },
+    { key: 'B', hex: '#fde047' },
+    { key: 'C', hex: '#fef08a' },
+    { key: 'D', hex: '#86efac' },
+    { key: 'E', hex: '#93c5fd' },
+    { key: 'F', hex: '#9ca3af' },
+    { key: 'G', hex: '#fda4af' },
+    { key: 'H', hex: '#e5e7eb' },
+  ];
 
   ngOnInit(): void {
     this.graph = new Graph({
@@ -259,8 +311,21 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
 
     // Abrir inspector al seleccionar nodo; cerrar al deseleccionar
     this.graph.on('node:selected', ({ node }) => {
-      this.selectedNode = node as Node;
-      this.nodeName = String(node.attr('label/text') || node.getData()?.text || '');
+      this.syncInspectorFromNode(node as Node);
+      this.inspectorOpen = true;
+    });
+    // Bloquear el pan del lienzo en clic derecho sobre nodos
+    this.graph.on('node:mousedown', ({ e }) => {
+      if (e.button === 2) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    // Abrir inspector con clic derecho sobre el nodo
+    this.graph.on('node:contextmenu', ({ node, e }) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.syncInspectorFromNode(node as Node);
       this.inspectorOpen = true;
     });
     this.graph.on('node:unselected', () => {
@@ -268,13 +333,18 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       if (!cells.length) {
         this.selectedNode = undefined;
         this.inspectorOpen = false;
+      }
+    });
+    // Sincronizar inspector con selección actual (soporta cambiar rápido entre nodos)
+    this.graph.on('selection:changed', () => {
+      const cells = this.graph.getSelectedCells();
+      const firstNode = cells.find((c) => c.isNode());
+      if (firstNode && firstNode.isNode()) {
+        this.syncInspectorFromNode(firstNode as Node);
+        this.inspectorOpen = true;
       } else {
-        const first = cells[0];
-        if (first.isNode()) {
-          this.selectedNode = first as Node;
-          this.nodeName = String((first as Node).attr('label/text') || (first as Node).getData()?.text || '');
-          this.inspectorOpen = true;
-        }
+        this.selectedNode = undefined;
+        this.inspectorOpen = false;
       }
     });
     this.graph.on('blank:click', () => { this.selectedNode = undefined; this.inspectorOpen = false; });
@@ -362,6 +432,59 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     if (!this.selectedNode) return;
     this.selectedNode.attr('label/text', this.nodeName);
     this.selectedNode.setData({ ...(this.selectedNode.getData() || {}), text: this.nodeName });
+  }
+
+  setFontSize(size: number) {
+    if (!this.selectedNode) return;
+    this.selectedNode.attr('label/fontSize', size);
+    this.activeFontSize = size;
+  }
+
+  setNodeColor(key: string) {
+    if (!this.selectedNode) return;
+    const found = this.colors.find(c => c.key === key);
+    if (!found) return;
+    this.applyNodeColorHex(found.hex);
+    this.activeColor = key;
+  }
+
+  private applyNodeColorHex(hex: string) {
+    if (!this.selectedNode) return;
+    this.selectedNode.attr('body/fill', hex);
+    const dark = this.isDarkHex(hex);
+    this.selectedNode.attr('label/fill', dark ? '#ffffff' : '#111827');
+  }
+
+  private isDarkHex(hex: string): boolean {
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2), 16);
+    const g = parseInt(h.substring(2,4), 16);
+    const b = parseInt(h.substring(4,6), 16);
+    const luminance = 0.2126*r + 0.7152*g + 0.0722*b;
+    return luminance < 140; // simple threshold
+  }
+
+  private syncInspectorFromNode(node: Node) {
+    this.selectedNode = node;
+    this.nodeName = String(node.attr('label/text') || node.getData()?.text || '');
+    const fs = Number(node.attr('label/fontSize'));
+    this.activeFontSize = isNaN(fs) ? this.defaultFontSize(node) : fs;
+    const fill = String(node.attr('body/fill') || '');
+    const foundColor = this.colors.find(c => c.hex.toLowerCase() === fill.toLowerCase());
+    this.activeColor = foundColor?.key;
+  }
+
+  private defaultFontSize(node: Node): number {
+    const t = node.getData()?.type;
+    switch (t) {
+      case 'title': return 24;
+      case 'paragraph': return 13;
+      case 'label': return 13;
+      case 'subtopic': return 14;
+      case 'topic': return 16;
+      case 'section': return 12;
+      default: return 14;
+    }
   }
 
   // Controles de zoom

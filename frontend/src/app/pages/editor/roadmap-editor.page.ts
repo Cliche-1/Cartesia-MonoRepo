@@ -16,9 +16,9 @@ import { Snapline } from '@antv/x6-plugin-snapline';
   template: `
     <section class="editor">
       <!-- Sidebar izquierda -->
-      <aside class="sidebar">
+      <aside class="sidebar" role="navigation" aria-label="Barra lateral del editor">
         <div class="nav-buttons" aria-label="Navegación del editor">
-          <button class="nav-btn" [class.active]="panel==='components'" (click)="panel='components'" title="Componentes">
+          <button class="nav-btn" [class.active]="panel==='components'" (click)="panel='components'" title="Componentes" [attr.aria-pressed]="panel==='components'">
             <i class="pi pi-palette"></i>
           </button>
           <button class="nav-btn" title="Herramientas" disabled>
@@ -33,7 +33,7 @@ import { Snapline } from '@antv/x6-plugin-snapline';
         </div>
 
         <!-- Panel desplegable de componentes -->
-        <div class="components-panel" *ngIf="panel==='components'">
+        <div class="components-panel" role="complementary" [attr.aria-expanded]="panel==='components'" *ngIf="panel==='components'">
           <div class="panel-title">COMPONENTS (DRAG & DROP)</div>
           <div class="components-list">
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'title')">
@@ -61,6 +61,14 @@ import { Snapline } from '@antv/x6-plugin-snapline';
       <!-- Canvas principal -->
       <div class="canvas-wrap" (dragover)="onDragOver($event)" (drop)="onDrop($event)">
         <div #graphContainer class="graph" id="graph-container"></div>
+        <div class="canvas-toolbar" aria-label="Herramientas del lienzo">
+          <button class="tool" type="button" (click)="zoomOut()" aria-label="Alejar">−</button>
+          <button class="tool" type="button" (click)="zoomIn()" aria-label="Acercar">+</button>
+          <button class="tool" type="button" (click)="resetZoom()" aria-label="Restablecer zoom">100%</button>
+          <span class="spacer" aria-hidden="true"></span>
+          <button class="tool" type="button" (click)="saveGraph()" aria-label="Guardar">Guardar</button>
+          <button class="tool" type="button" (click)="loadGraph()" aria-label="Cargar">Cargar</button>
+        </div>
       </div>
     </section>
   `,
@@ -80,7 +88,23 @@ import { Snapline } from '@antv/x6-plugin-snapline';
 
     .canvas-wrap { position:relative; }
     .graph { width: 100%; height: 100%; background: #f7f7fb; }
-
+    .canvas-toolbar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(17, 24, 39, .55);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(6px) saturate(115%);
+    }
+    .tool { padding: 6px 10px; border: 0; border-radius: 8px; background: rgba(255,255,255,.06); color: inherit; cursor: pointer; }
+    .tool:hover { background: rgba(255,255,255,.12); }
+    .spacer { display:inline-block; width: 1px; height: 24px; background: rgba(255,255,255,.12); margin: 0 4px; }
+    
     /* Ajustes X6 para replicar Example.js */
     .x6-widget-transform {
       margin: -1px 0 0 -1px;
@@ -123,8 +147,8 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       mousewheel: { enabled: true, zoomAtMousePosition: true, modifiers: ['ctrl'], minScale: 0.5, maxScale: 3 },
       // selección y transformación se controlan por plugins
       connecting: {
-        router: { name: 'manhattan', args: { padding: 1 } },
-        connector: { name: 'rounded', args: { radius: 8 } },
+        // Conexiones suaves (curvas) en lugar de ortogonales
+        connector: { name: 'smooth' },
         anchor: 'center',
         connectionPoint: 'anchor',
         allowBlank: false,
@@ -135,7 +159,8 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
               line: {
                 stroke: '#A2B1C3',
                 strokeWidth: 2,
-                targetMarker: { name: 'block', width: 12, height: 8 },
+                // sin flecha
+                targetMarker: ''
               },
             },
             zIndex: 0,
@@ -189,6 +214,48 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       }
     });
 
+    // Estilizar aristas según tipo de conexión: topic-topic sólido, topic-subtopic punteado
+    this.graph.on('edge:connected', ({ edge }) => {
+      const sourceId = edge.getSourceCellId();
+      const targetId = edge.getTargetCellId();
+      const sourceCell = sourceId ? this.graph.getCellById(sourceId) : null;
+      const targetCell = targetId ? this.graph.getCellById(targetId) : null;
+      const sType = sourceCell?.getData()?.type;
+      const tType = targetCell?.getData()?.type;
+
+      // quitar flecha siempre
+      edge.attr('line/targetMarker', '');
+
+      if (sType === 'topic' && tType === 'topic') {
+        // línea sólida
+        edge.attr({
+          line: {
+            strokeDasharray: null,
+            stroke: '#A2B1C3',
+          }
+        });
+      } else if (
+        (sType === 'topic' && tType === 'subtopic') ||
+        (sType === 'subtopic' && tType === 'topic')
+      ) {
+        // línea punteada
+        edge.attr({
+          line: {
+            strokeDasharray: '5 5',
+            stroke: '#A2B1C3',
+          }
+        });
+      } else {
+        // por defecto: sólido
+        edge.attr({
+          line: {
+            strokeDasharray: null,
+            stroke: '#A2B1C3',
+          }
+        });
+      }
+    });
+
     // Puertos: ocultos por defecto (visibility), visibles en hover
     this.graph.on('node:mouseenter', () => {
       const container = this.graphEl.nativeElement as HTMLElement;
@@ -218,6 +285,27 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     this.dnd.start(node, e);
   }
 
+  // Controles de zoom
+  zoomIn(): void { this.graph?.zoom(0.1); }
+  zoomOut(): void { this.graph?.zoom(-0.1); }
+  resetZoom(): void { this.graph?.zoomTo(1); }
+
+  // Guardar y cargar desde localStorage
+  saveGraph(): void {
+    try {
+      const data = this.graph?.toJSON();
+      localStorage.setItem('roadmap-editor-graph', JSON.stringify(data));
+    } catch (e) { console.error('Error al guardar el roadmap', e); }
+  }
+  loadGraph(): void {
+    try {
+      const str = localStorage.getItem('roadmap-editor-graph');
+      if (!str) return;
+      const data = JSON.parse(str);
+      this.graph?.fromJSON(data);
+    } catch (e) { console.error('Error al cargar el roadmap', e); }
+  }
+
   onDragOver(e: DragEvent) { e.preventDefault(); }
   onDrop(e: DragEvent) { e.preventDefault(); }
 
@@ -230,7 +318,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 12, ry: 12 },
             label: { text: 'Title', fontSize: 24, fontWeight: 700, fill: '#1f2937' },
           },
-          data: { text: 'Title' },
+          data: { text: 'Title', type: 'title' },
         });
       case 'topic':
         return this.graph.createNode({
@@ -250,7 +338,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
               { group: 'top' }, { group: 'right' }, { group: 'bottom' }, { group: 'left' }
             ],
           },
-          data: { text: 'Topic' },
+          data: { text: 'Topic', type: 'topic' },
         });
       case 'subtopic':
         return this.graph.createNode({
@@ -270,7 +358,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
               { group: 'top' }, { group: 'right' }, { group: 'bottom' }, { group: 'left' }
             ],
           },
-          data: { text: 'Sub Topic' },
+          data: { text: 'Sub Topic', type: 'subtopic' },
         });
       case 'paragraph':
         return this.graph.createNode({
@@ -279,7 +367,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 8, ry: 8 },
             label: { text: 'Paragraph\nTexto de ejemplo', fontSize: 13, fontWeight: 500, fill: '#374151' },
           },
-          data: { text: 'Paragraph' },
+          data: { text: 'Paragraph', type: 'paragraph' },
         });
       case 'label':
         return this.graph.createNode({
@@ -288,7 +376,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: '#ffffff', stroke: '#e5e7eb', rx: 999, ry: 999 },
             label: { text: 'Label', fontSize: 13, fontWeight: 600, fill: '#111827' },
           },
-          data: { text: 'Label' },
+          data: { text: 'Label', type: 'label' },
         });
       case 'section':
         return this.graph.createNode({
@@ -297,7 +385,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
             body: { fill: 'transparent', stroke: '#9ca3af', strokeDasharray: '6 4', rx: 12, ry: 12 },
             label: { text: 'Section', fontSize: 12, fill: '#6b7280' },
           },
-          data: { text: 'Section' },
+          data: { text: 'Section', type: 'section' },
         });
       default:
         return this.graph.createNode({ shape: 'rect', width: 100, height: 40, attrs: { label: { text: 'Item' } } });

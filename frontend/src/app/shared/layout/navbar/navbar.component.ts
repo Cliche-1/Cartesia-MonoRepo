@@ -53,6 +53,13 @@ import { RouterLink } from '@angular/router';
                 <span class="desc">Explora roadmaps creados por otros usuarios</span>
               </div>
             </a>
+            <a role="menuitem" routerLink="/roadmaps/editor" class="item">
+              <i class="pi pi-pencil"></i>
+              <div class="info">
+                <span class="title">Editor de Roadmaps</span>
+                <span class="desc">Crea y organiza tu roadmap visualmente</span>
+              </div>
+            </a>
           </div>
         </div>
 

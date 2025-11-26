@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
@@ -117,22 +117,30 @@ import { ApiService } from '../../../services/api.service';
 
       <!-- Actions -->
       <div class="actions">
-        <ng-container *ngIf="!api.isAuthenticated(); else authActions">
+        <ng-container *ngIf="!api.authState(); else authActions">
           <a class="btn ghost" routerLink="/login">Iniciar sesión</a>
           <a class="btn primary" routerLink="/register">Registrarse</a>
         </ng-container>
         <ng-template #authActions>
+          <button class="icon-btn" (click)="toggleLang()" [attr.aria-expanded]="langOpen()" aria-haspopup="menu" title="Idioma">
+            <i class="pi pi-globe"></i>
+          </button>
+          <div class="menu right small" role="menu" *ngIf="langOpen()">
+            <button class="item plain" (click)="setLang('es')">Español</button>
+            <button class="item plain" (click)="setLang('en')">English</button>
+          </div>
+          <button class="icon-btn" title="Notificaciones"><i class="pi pi-bell"></i></button>
           <div class="dropdown" [class.open]="accountOpen()">
             <button
-              class="dropdown-trigger btn primary"
+              class="dropdown-trigger profile-btn"
               type="button"
               (click)="toggleAccount()"
               (blur)="closeAccountOnBlur($event)"
               aria-haspopup="menu"
               [attr.aria-expanded]="accountOpen()"
             >
-              <i class="pi pi-user"></i>
-              <span>Cuenta</span>
+              <span class="avatar">{{ avatarInitial }}</span>
+              <span class="uname">{{ username || 'Usuario' }}</span>
               <i class="pi pi-chevron-down caret"></i>
             </button>
             <div class="menu right" role="menu">
@@ -188,6 +196,11 @@ import { ApiService } from '../../../services/api.service';
     .desc { font-size:.85rem; color: var(--color-muted); }
 
     .actions { display:flex; align-items:center; gap:12px; }
+    .icon-btn { width:36px; height:36px; display:inline-grid; place-items:center; border:0; border-radius:10px; background: rgba(255,255,255,.08); color: var(--color-text); cursor:pointer; }
+    .profile-btn { display:flex; align-items:center; gap:8px; padding:4px 8px; border:1px solid rgba(255,255,255,.15); border-radius:999px; background: rgba(255,255,255,.06); color: var(--color-text); }
+    .avatar { width:24px; height:24px; border-radius:999px; background:#111827; color:#fff; display:inline-grid; place-items:center; font-size:.85rem; font-weight:700; }
+    .uname { font-weight:600; }
+    .menu.small { min-width: 160px; }
 
     .menu.right { left: auto; right: 0; }
 
@@ -207,12 +220,31 @@ export class NavbarComponent {
   roadmapsOpen = signal(false);
   tutorOpen = signal(false);
   accountOpen = signal(false);
+  langOpen = signal(false);
+  username = '';
+  avatarInitial = 'U';
 
-  constructor(public api: ApiService, private router: Router) {}
+  constructor(public api: ApiService, private router: Router) {
+    effect(() => {
+      const authed = this.api.authState();
+      if (authed) {
+        this.api.me().then(u => {
+          this.username = u?.username || '';
+          this.avatarInitial = (this.username || 'U').charAt(0).toUpperCase();
+        }).catch(() => {});
+      } else {
+        this.username = '';
+        this.avatarInitial = 'U';
+      }
+    });
+    const saved = localStorage.getItem('lang');
+    if (saved) { /* no-op, but keep selected */ }
+  }
 
   toggleRoadmaps() { this.roadmapsOpen.update(v => !v); }
   toggleTutor() { this.tutorOpen.update(v => !v); }
   toggleAccount() { this.accountOpen.update(v => !v); }
+  toggleLang() { this.langOpen.update(v => !v); }
 
   closeRoadmapsOnBlur(event: FocusEvent) {
     const target = event.target as HTMLElement;
@@ -246,6 +278,11 @@ export class NavbarComponent {
   logout() {
     this.api.token = null;
     this.accountOpen.set(false);
-    this.router.navigateByUrl('/');
+    this.router.navigateByUrl('/login');
+  }
+
+  setLang(code: 'es'|'en') {
+    localStorage.setItem('lang', code);
+    this.langOpen.set(false);
   }
 }

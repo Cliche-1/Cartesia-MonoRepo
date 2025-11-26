@@ -1,22 +1,26 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 export interface AuthResponse { token: string }
 export interface UserInfo { id: number; email: string; username: string }
 export interface DiagramData { nodes: any[]; edges: any[] }
-export interface LearningPath { id: number; title: string; description?: string }
+export interface LearningPath { id: number; title: string; description?: string; createdAt?: string; stepsCount?: number; resourcesCount?: number; thumbnail?: string; provider?: string }
+export interface ResourceUploadResponse { type: string; title?: string; url: string; mimeType?: string; size?: number; storagePath?: string }
+export interface SearchRoadmapsResponse { items: LearningPath[]; page: number; pageSize: number; total: number; sortBy: string; sortDir: 'ASC'|'DESC' }
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
   private baseUrl = 'http://localhost:8080/api/v1';
   private tokenKey = 'cartesia.token';
+  authState = signal<boolean>(!!localStorage.getItem('cartesia.token'));
 
   get token(): string | null { return localStorage.getItem(this.tokenKey); }
   set token(v: string | null) {
     if (v) localStorage.setItem(this.tokenKey, v);
     else localStorage.removeItem(this.tokenKey);
+    this.authState.set(!!v);
   }
   isAuthenticated(): boolean { return !!this.token; }
 
@@ -34,6 +38,12 @@ export class ApiService {
   async login(payload: { email: string; password: string }): Promise<AuthResponse> {
     const url = `${this.baseUrl}/auth/login`;
     return await firstValueFrom(this.http.post<AuthResponse>(url, payload));
+  }
+
+
+  async exchangeSupabaseToken(accessToken: string): Promise<AuthResponse> {
+    const url = `${this.baseUrl}/auth/supabase/exchange`;
+    return await firstValueFrom(this.http.post<AuthResponse>(url, { accessToken }));
   }
 
   async me(): Promise<UserInfo> {
@@ -69,8 +79,164 @@ export class ApiService {
     return await firstValueFrom(this.http.get<LearningPath[]>(url, { headers: this.authHeaders() }));
   }
 
-  async createLearningPath(payload: { title: string; description?: string }): Promise<LearningPath> {
+  async createLearningPath(payload: { title: string; description?: string; visibility?: 'public'|'private' }): Promise<LearningPath> {
     const url = `${this.baseUrl}/learning-paths`;
     return await firstValueFrom(this.http.post<LearningPath>(url, payload, { headers: this.authHeaders() }));
+  }
+
+  async lockLearningPath(id: number): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/lock`;
+    return await firstValueFrom(this.http.post(url, {}, { headers: this.authHeaders() })) as any;
+  }
+
+  async unlockLearningPath(id: number): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/unlock`;
+    return await firstValueFrom(this.http.post(url, {}, { headers: this.authHeaders() })) as any;
+  }
+
+  async listCollaborators(id: number): Promise<{ items: { userId:number; role:string }[] }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/collaborators`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  async inviteCollaborator(id: number, email: string, role: 'editor'|'collaborator'|'reader' = 'collaborator'): Promise<{ token: string }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/invite`;
+    return await firstValueFrom(this.http.post(url, { email, role }, { headers: this.authHeaders() })) as any;
+  }
+
+  async acceptInvitation(token: string): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/learning-paths/invitations/${encodeURIComponent(token)}/accept`;
+    return await firstValueFrom(this.http.post(url, {}, { headers: this.authHeaders() })) as any;
+  }
+
+  // RF-006: Búsqueda avanzada de roadmaps
+  async searchRoadmaps(params: { q?: string; authorId?: number; hasResources?: boolean; resourceType?: string; minSteps?: number; maxSteps?: number; sortBy?: 'created_at'|'title'|'steps_count'; sortDir?: 'ASC'|'DESC'; page?: number; pageSize?: number }): Promise<SearchRoadmapsResponse> {
+    const url = `${this.baseUrl}/search/roadmaps`;
+    const query: any = {};
+    if (params.q) query.q = params.q;
+    if (params.authorId != null) query.authorId = String(params.authorId);
+    if (params.hasResources != null) query.hasResources = String(params.hasResources);
+    if (params.resourceType) query.resourceType = params.resourceType;
+    if (params.minSteps != null) query.minSteps = String(params.minSteps);
+    if (params.maxSteps != null) query.maxSteps = String(params.maxSteps);
+    if (params.sortBy) query.sortBy = params.sortBy;
+    if (params.sortDir) query.sortDir = params.sortDir;
+    if (params.page) query.page = String(params.page);
+    if (params.pageSize) query.pageSize = String(params.pageSize);
+    const qs = new URLSearchParams(query).toString();
+    return await firstValueFrom(this.http.get<SearchRoadmapsResponse>(`${url}?${qs}`, { headers: this.authHeaders() }));
+  }
+
+  async getLearningPathSummary(id: number): Promise<LearningPath & { author?: { id:number; username?: string } }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/summary`;
+    return await firstValueFrom(this.http.get<LearningPath>(url, { headers: this.authHeaders() })) as any;
+  }
+
+  async getLearningPathDiagram(id: number): Promise<{ diagramJSON: string }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/diagram`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  async getLearningPathComments(id: number): Promise<{ items: { id:number; content:string; createdAt:string; username:string }[] }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/comments`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  async postRoadmapComment(id: number, content: string): Promise<{ id: number }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/comments`;
+    return await firstValueFrom(this.http.post(url, { content }, { headers: this.authHeaders() })) as any;
+  }
+
+  async rateLearningPath(id: number, score: number): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/rate`;
+    return await firstValueFrom(this.http.post(url, { score }, { headers: this.authHeaders() })) as any;
+  }
+
+  async getLearningPathRatings(id: number): Promise<{ avg: number; breakdown: { score: number; count: number }[] }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/ratings`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  async listVersions(id: number): Promise<{ items: { id:number; createdAt:string; authorId:number }[] }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/versions`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  async getVersionDiagram(id: number, versionId: number): Promise<{ diagramJSON: string }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/versions/${versionId}`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  async logExport(id: number, options: { includeResources: boolean; includeComments: boolean; versionId?: number; pageSize: string; orientation: string }): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/learning-paths/${id}/export/log`;
+    return await firstValueFrom(this.http.post(url, options, { headers: this.authHeaders() })) as any;
+  }
+
+  async postPathStepComment(id: number, content: string): Promise<{ id: number }> {
+    const url = `${this.baseUrl}/path-steps/${id}/comments`;
+    return await firstValueFrom(this.http.post(url, { content }, { headers: this.authHeaders() })) as any;
+  }
+
+  async rateResource(id: number, score: number): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/resources/${id}/rate`;
+    return await firstValueFrom(this.http.post(url, { score }, { headers: this.authHeaders() })) as any;
+  }
+
+  async getResourceRatings(id: number): Promise<{ avg: number; breakdown: { score: number; count: number }[] }> {
+    const url = `${this.baseUrl}/resources/${id}/ratings`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  // RF-006: Sugerencias/autocompletar
+  async searchSuggestions(q: string): Promise<{ learningPaths: { id:number; title:string }[]; pathSteps: { id:number; title:string; learningPathId:number }[] }> {
+    const url = `${this.baseUrl}/search/suggestions?q=${encodeURIComponent(q)}`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() })) as any;
+  }
+
+  // RF-005: Subir archivo
+  async uploadResourceFile(file: File, title?: string): Promise<ResourceUploadResponse> {
+    const url = `${this.baseUrl}/resources/upload`;
+    const form = new FormData();
+    form.append('file', file);
+    if (title) form.append('title', title);
+    const res = await firstValueFrom(this.http.post<ResourceUploadResponse>(url, form, { headers: this.authHeaders() }));
+    const origin = this.baseUrl.replace('/api/v1', '');
+    if (res?.url && !res.url.startsWith('http')) {
+      res.url = origin + res.url;
+    }
+    return res;
+  }
+
+  // RF-005: Metadatos de enlace
+  async fetchResourceMetadata(resourceUrl: string): Promise<{ title?: string; description?: string; thumbnail?: string; provider?: string; type?: string; embedHtml?: string; url?: string }> {
+    const url = `${this.baseUrl}/resources/metadata`;
+    const payload = { url: resourceUrl };
+    return await firstValueFrom(this.http.post(url, payload, { headers: this.authHeaders() }));
+  }
+
+  // Teacher application API
+  async getMyTeacherApplication(): Promise<any> {
+    const url = `${this.baseUrl}/teacher/applications/me`;
+    return await firstValueFrom(this.http.get(url, { headers: this.authHeaders() }));
+  }
+
+  async saveTeacherApplication(data: { publicName?: string; legalName?: string; email?: string; phone?: string; location?: string; referral?: string; topics?: string; ages?: string; expertise?: string; years?: string; bio?: string }): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/teacher/applications`;
+    return await firstValueFrom(this.http.post(url, data, { headers: this.authHeaders() })) as any;
+  }
+
+  async saveTeacherVideo(videoUrl: string): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/teacher/applications/video`;
+    return await firstValueFrom(this.http.post(url, { videoUrl }, { headers: this.authHeaders() })) as any;
+  }
+
+  async submitTeacherApplication(agree: boolean): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/teacher/applications/submit`;
+    return await firstValueFrom(this.http.post(url, { agree }, { headers: this.authHeaders() })) as any;
+  }
+
+  async saveTeacherCV(cvUrl: string): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/teacher/applications/cv`;
+    return await firstValueFrom(this.http.post(url, { cvUrl }, { headers: this.authHeaders() })) as any;
   }
 }

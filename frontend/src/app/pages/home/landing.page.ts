@@ -1,11 +1,13 @@
-﻿import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   template: `
     <div class="landing">
       <!-- Fondo grafo de red -->
@@ -31,7 +33,7 @@ import { CommonModule } from '@angular/common';
           <a class="btn ghost" routerLink="/roadmaps">Explorar Roadmaps</a>
         </div>
         <div class="search">
-          <input type="text" placeholder="Buscar roadmaps, temas o creadores" />
+          <input type="text" [(ngModel)]="searchText" (keyup.enter)="goSearch()" placeholder="Buscar roadmaps, temas o creadores" />
           <div class="hint">Ejemplo: Frontend, Data Science, DevOps, UX/UI</div>
         </div>
       </main>
@@ -194,6 +196,13 @@ export class LandingComponent implements AfterViewInit, OnDestroy {
   private animationId?: number;
   private nodes: Array<{ x: number; y: number; vx: number; vy: number; radius: number; color: string }> = [];
   private resizeHandler = () => this.updateSize();
+  searchText = '';
+  constructor(private router: Router) {}
+  goSearch() {
+    const q = (this.searchText || '').trim();
+    if (!q) return;
+    this.router.navigate(['/buscar'], { queryParams: { q } });
+  }
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
@@ -279,4 +288,4 @@ export class LandingComponent implements AfterViewInit, OnDestroy {
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
   }
-}
+ }

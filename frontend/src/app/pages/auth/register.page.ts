@@ -14,6 +14,7 @@ import { ApiService } from '../../services/api.service';
         <div class="card glass">
           <h1 class="center">Crear cuenta</h1>
           <p class="subtitle center">Publica y sigue roadmaps, guarda tu progreso y más.</p>
+          <p class="success center" *ngIf="success">Cuenta creada correctamente</p>
 
           <form class="form" (ngSubmit)="onSubmit()" novalidate>
             <label class="field">
@@ -50,11 +51,7 @@ import { ApiService } from '../../services/api.service';
             <button class="btn primary" type="submit">Registrarse</button>
           </form>
 
-          <div class="sep"><span>o</span></div>
-          <button class="btn oauth" type="button">
-            <i class="pi pi-google"></i>
-            <span>Continuar con Google</span>
-          </button>
+          
 
           <p class="switch center">¿Ya tienes cuenta? <a routerLink="/login">Iniciar sesión</a></p>
         </div>
@@ -78,6 +75,7 @@ import { ApiService } from '../../services/api.service';
     .toggle { position:absolute; right:8px; top:8px; padding:6px 10px; border-radius:8px; border:0; background: rgba(255,255,255,.06); color: inherit; cursor:pointer; }
     .hint { color: var(--color-muted); }
     .error { color:#fca5a5; font-size:.85rem; }
+    .success { color:#86efac; font-size:.9rem; }
     .checkbox { display:flex; align-items:center; gap:8px; }
     .checkbox a { color:#c9b8ff; text-decoration:none; }
     .btn { appearance:none; border:none; border-radius: 10px; font-weight:600; cursor:pointer; }
@@ -100,6 +98,7 @@ export class RegisterPage {
   showPwd = false;
   submitted = false;
   loading = false;
+  success = false;
 
   constructor(private api: ApiService, private router: Router) {}
 
@@ -117,7 +116,8 @@ export class RegisterPage {
       this.loading = true;
       const res = await this.api.register({ email: this.email, username: this.name, password: this.password });
       this.api.token = res?.token || null;
-      await this.router.navigateByUrl('/roadmaps/editor');
+      this.success = true;
+      setTimeout(async () => { await this.router.navigateByUrl('/'); }, 500);
     } catch (err: any) {
       alert('Error al registrar');
       console.error(err);
@@ -125,4 +125,6 @@ export class RegisterPage {
       this.loading = false;
     }
   }
+
+  
 }

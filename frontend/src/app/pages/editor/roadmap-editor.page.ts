@@ -35,7 +35,10 @@ import { ApiService } from '../../services/api.service';
             <option value="public">Público</option>
           </select>
           <button type="button" class="tb-btn link" (click)="previewRoadmap()">Previsualización</button>
-          <button type="button" class="tb-btn primary" (click)="saveAll()" [disabled]="savingBackend">Guardar</button>
+          <button type="button" class="tb-btn link" (click)="togglePanel('settings')">Colaboración</button>
+          <button type="button" class="tb-btn" (click)="openExportPreview()" [disabled]="!learningPathId">Exportar</button>
+          <button type="button" class="tb-btn primary" (click)="saveAll()" [disabled]="savingBackend || !canEdit">{{ savingBackend ? 'Guardando…' : 'Guardar' }}</button>
+          <span class="save-status" *ngIf="saveMsg" [class.ok]="saveOK" [class.err]="saveErr">{{saveMsg}}</span>
         </div>
       </div>
       <!-- Sidebar izquierda colapsada -->
@@ -50,8 +53,8 @@ import { ApiService } from '../../services/api.service';
           <button class="nav-btn" title="Buscar" disabled>
             <i class="pi pi-search"></i>
           </button>
-          <button class="nav-btn" title="Configuración" disabled>
-            <i class="pi pi-cog"></i>
+          <button class="nav-btn" [class.active]="panel==='settings'" (click)="togglePanel('settings')" title="Colaboración" [attr.aria-pressed]="panel==='settings'">
+            <i class="pi pi-users"></i>
           </button>
         </div>
       </aside>
@@ -82,6 +85,53 @@ import { ApiService } from '../../services/api.service';
             <div class="component-item" draggable="true" (dragstart)="onDragStart($event, 'section')">
               <i class="pi pi-folder-open"></i> <span>Sección</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flyout-panel" role="complementary" *ngIf="panel==='settings'" [attr.aria-expanded]="panel==='settings'">
+        <header class="flyout-header">
+          <h3>Colaboración</h3>
+          <button class="close" type="button" (click)="closePanel()" aria-label="Cerrar">✕</button>
+        </header>
+        <div class="flyout-content">
+          <div class="collab-status">
+            <span class="badge" [class.ok]="canEdit" [class.err]="!canEdit">{{ canEdit ? 'Editando (bloqueado por ti)' : (saveMsg || 'Modo lectura') }}</span>
+            <div class="row">
+              <button type="button" class="btn" (click)="onLock()" [disabled]="lockBusy || canEdit || !api.isAuthenticated()">Tomar control</button>
+              <button type="button" class="btn ghost" (click)="onUnlock()" [disabled]="lockBusy || !canEdit">Liberar control</button>
+            </div>
+          </div>
+
+          <hr class="opt-sep" />
+
+          <div class="collab-list">
+            <div class="list-title">Colaboradores</div>
+            <div class="item" *ngFor="let c of collaborators">
+              <div class="name">Usuario {{c.userId}}</div>
+              <div class="role">{{c.role}}</div>
+            </div>
+            <button type="button" class="btn" (click)="loadCollaborators()" [disabled]="!learningPathId">Actualizar</button>
+          </div>
+
+          <hr class="opt-sep" />
+
+          <div class="invite-form">
+            <div class="list-title">Invitar</div>
+            <label class="field">
+              <span>Email</span>
+              <input type="email" [(ngModel)]="inviteEmail" placeholder="correo@ejemplo.com" />
+            </label>
+            <label class="field">
+              <span>Rol</span>
+              <select [(ngModel)]="inviteRole">
+                <option value="editor">Editor</option>
+                <option value="collaborator">Colaborador</option>
+                <option value="reader">Lector</option>
+              </select>
+            </label>
+            <button type="button" class="btn accent" (click)="invite()" [disabled]="!learningPathId || !inviteEmail">Enviar invitación</button>
+            <div class="hint" *ngIf="inviteToken">Token generado: {{inviteToken}}</div>
           </div>
         </div>
       </div>
@@ -255,6 +305,19 @@ import { ApiService } from '../../services/api.service';
     .link-card .remove:hover { background: rgba(244,63,94,.28); }
     .links-list .add { width:100%; padding:10px 12px; border:0; border-radius:10px; background: rgba(255,255,255,.10); color: inherit; cursor:pointer; }
     .links-list .add:hover { background: rgba(255,255,255,.16); }
+    .collab-status { display:grid; gap:10px; }
+    .collab-status .badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:.82rem; background: rgba(255,255,255,.06); }
+    .collab-status .badge.ok { background: rgba(22,163,74,.18); color:#dcfce7; }
+    .collab-status .badge.err { background: rgba(244,63,94,.18); color:#fee; }
+    .collab-status .row { display:flex; gap:10px; }
+    .btn { padding:8px 10px; border:0; border-radius:10px; background: rgba(255,255,255,.08); color: inherit; cursor:pointer; }
+    .btn.ghost { background: transparent; border:1px solid rgba(255,255,255,.18); }
+    .btn.accent { background: linear-gradient(90deg,#6d28d9,#5b21b6); color:#fff; border:1px solid rgba(255,255,255,.18); }
+    .collab-list { display:grid; gap:8px; }
+    .collab-list .list-title { font-weight:600; color:#cbd5e1; }
+    .collab-list .item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-radius:10px; background: rgba(255,255,255,.06); }
+    .invite-form { display:grid; gap:10px; }
+    .invite-form .hint { font-size:.8rem; color:#cbd5e1; }
 
     .canvas-wrap { position:relative; grid-row: 2; grid-column: 2; }
     .graph { width: 100%; height: 100%; background: #f7f7fb; }
@@ -284,6 +347,9 @@ import { ApiService } from '../../services/api.service';
     .x6-widget-selection-box {
       opacity: 0;
     }
+    .save-status { margin-left: 8px; font-size: .85rem; }
+    .save-status.ok { color: #86efac; }
+    .save-status.err { color: #fca5a5; }
     `
   ]
 })
@@ -330,8 +396,17 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   paths: { id: number; title: string }[] = [];
   loadingBackend = false;
   savingBackend = false;
+  saveMsg = '';
+  saveOK = false;
+  saveErr = false;
+  canEdit = true;
+  lockBusy = false;
+  collaborators: { userId:number; role:string }[] = [];
+  inviteEmail = '';
+  inviteRole: 'editor'|'collaborator'|'reader' = 'collaborator';
+  inviteToken = '';
 
-  constructor(private router: Router, private api: ApiService, private route: ActivatedRoute) {}
+  constructor(private router: Router, public api: ApiService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     // Leer ?lp=ID desde la URL para fijar el roadmap a editar
@@ -349,6 +424,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       container: this.graphEl.nativeElement,
       grid: true,
       background: { color: '#f7f7fb' },
+      interacting: () => this.canEdit,
       // Panning solo con botón derecho
       panning: { enabled: true, eventTypes: ['rightMouseDown'] },
       mousewheel: { enabled: true, zoomAtMousePosition: true, modifiers: ['ctrl'], minScale: 0.5, maxScale: 3 },
@@ -532,6 +608,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.learningPathId && this.api.isAuthenticated()) { this.api.unlockLearningPath(this.learningPathId).catch(() => {}); }
     this.graph?.dispose();
   }
 
@@ -684,7 +761,8 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       if (!this.learningPathId) {
         const title = this.metaTitle || 'Roadmap';
         const description = this.metaSubtitle || '';
-        this.api.createLearningPath({ title, description })
+        const visibility = this.visibility;
+        this.api.createLearningPath({ title, description, visibility })
           .then((lp) => {
             this.learningPathId = lp?.id || null;
             if (this.learningPathId) this.saveToBackend();
@@ -693,6 +771,8 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
         return;
       }
       this.saveToBackend();
+    } else {
+      this.saveOK = false; this.saveErr = false; this.saveMsg = 'Guardado local. Inicia sesión para guardar en la nube';
     }
   }
   loadGraph(): void {
@@ -706,14 +786,74 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
 
   async fetchLearningPaths(): Promise<void> {
     try {
-      const list = await this.api.listLearningPaths();
-      this.paths = (list || []).map((p: any) => ({ id: Number(p.id), title: String(p.title || '') }));
+      const mine = await this.api.listMyLearningPaths();
+      this.paths = (mine || []).map((p: any) => ({ id: Number(p.id), title: String(p.title || '') }));
+      // Solo seleccionar por defecto uno propio
       if (!this.learningPathId && this.paths.length) this.learningPathId = this.paths[0].id;
-      // Si ya hay un LP seleccionado (por query param o por defecto), cargarlo
       if (this.learningPathId) {
         this.loadFromBackend();
+        await this.tryLock();
+        await this.loadCollaborators();
       }
-    } catch (e) { console.error('Error al cargar roadmaps', e); }
+    } catch (e) { console.error('Error al cargar mis roadmaps', e); }
+  }
+
+  async tryLock(): Promise<void> {
+    if (!this.learningPathId) { this.canEdit = false; return; }
+    if (!this.api.isAuthenticated()) { this.canEdit = false; this.saveMsg = 'Modo lectura (no autenticado)'; this.saveErr = true; return; }
+    try {
+      await this.api.lockLearningPath(this.learningPathId);
+      this.canEdit = true;
+      this.saveMsg = 'Bloqueado por ti'; this.saveOK = true; this.saveErr = false;
+    } catch (e: any) {
+      this.canEdit = false;
+      if (e?.status === 423) { this.saveMsg = 'Bloqueado por otro usuario. Modo lectura'; this.saveErr = true; }
+      else if (e?.status === 403) { this.saveMsg = 'Sin permiso de edición'; this.saveErr = true; }
+      else { this.saveMsg = 'No se pudo bloquear'; this.saveErr = true; }
+    }
+  }
+
+  async onLock(): Promise<void> {
+    if (!this.learningPathId) return;
+    this.lockBusy = true;
+    try {
+      await this.api.lockLearningPath(this.learningPathId);
+      this.canEdit = true;
+      this.saveMsg = 'Bloqueado por ti'; this.saveOK = true; this.saveErr = false;
+    } catch (e: any) {
+      this.canEdit = false;
+      if (e?.status === 423) { this.saveMsg = 'Bloqueado por otro usuario'; this.saveErr = true; }
+      else if (e?.status === 403) { this.saveMsg = 'Sin permiso de edición'; this.saveErr = true; }
+      else { this.saveMsg = 'No se pudo bloquear'; this.saveErr = true; }
+    } finally { this.lockBusy = false; }
+  }
+
+  async onUnlock(): Promise<void> {
+    if (!this.learningPathId) return;
+    this.lockBusy = true;
+    try {
+      await this.api.unlockLearningPath(this.learningPathId);
+      this.canEdit = false;
+      this.saveMsg = 'Modo lectura'; this.saveOK = false; this.saveErr = false;
+    } catch {}
+    finally { this.lockBusy = false; }
+  }
+
+  async loadCollaborators(): Promise<void> {
+    if (!this.learningPathId) return;
+    try {
+      const r = await this.api.listCollaborators(this.learningPathId);
+      const items = Array.isArray((r as any)?.items) ? (r as any).items : [];
+      this.collaborators = items.map((x: any) => ({ userId: Number(x.userId), role: String(x.role) }));
+    } catch {}
+  }
+
+  async invite(): Promise<void> {
+    if (!this.learningPathId || !this.inviteEmail) return;
+    try {
+      const r = await this.api.inviteCollaborator(this.learningPathId, this.inviteEmail, this.inviteRole);
+      this.inviteToken = String((r as any)?.token || '');
+    } catch {}
   }
 
   async loadFromBackend(): Promise<void> {
@@ -734,19 +874,49 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       const json = this.graph?.toJSON() as any;
       const ok = await this.api.updateDiagram(this.learningPathId, json);
       if (ok) {
-        // feedback mínimo
-        // eslint-disable-next-line no-alert
-        alert('Roadmap guardado en backend');
+        this.saveOK = true; this.saveErr = false; this.saveMsg = 'Guardado';
       }
-    } catch (e) { console.error('Error al guardar diagrama', e); }
+    } catch (e: any) {
+      // Si no eres autor del LP seleccionado, crea uno nuevo y guarda allí
+      if (e?.status === 403 || String(e)?.toLowerCase().includes('forbidden')) {
+        try {
+          const title = this.metaTitle || 'Roadmap';
+          const description = this.metaSubtitle || '';
+          const visibility = this.visibility;
+          const lp = await this.api.createLearningPath({ title, description, visibility });
+          this.learningPathId = lp?.id || null;
+          if (this.learningPathId) {
+            const json2 = this.graph?.toJSON() as any;
+            const ok2 = await this.api.updateDiagram(this.learningPathId, json2);
+            if (ok2) {
+              this.saveOK = true; this.saveErr = false; this.saveMsg = 'Creado y guardado en tu cuenta';
+            }
+          }
+        } catch (err) {
+          console.error('Guardar con fallback falló', err);
+          this.saveOK = false; this.saveErr = true; this.saveMsg = 'No autorizado para guardar en ese roadmap';
+        }
+      } else {
+        console.error('Error al guardar diagrama', e);
+        this.saveOK = false; this.saveErr = true; this.saveMsg = 'Error al guardar';
+      }
+    }
     finally { this.savingBackend = false; }
   }
 
   previewRoadmap(): void {
-    // Guardar y navegar a la vista de previsualización
     this.saveGraph();
     this.saveMeta();
-    window.open('/roadmaps/preview', '_blank');
+    const url = this.router.createUrlTree(['/roadmaps/preview'], { queryParams: { lp: this.learningPathId } }).toString();
+    window.open(url, '_blank');
+  }
+
+  openExportPreview(): void {
+    if (!this.learningPathId) return;
+    this.saveGraph();
+    this.saveMeta();
+    const url = this.router.createUrlTree(['/roadmaps/preview'], { queryParams: { lp: this.learningPathId, export: 1 } }).toString();
+    window.open(url, '_blank');
   }
 
   closeEditor(): void {

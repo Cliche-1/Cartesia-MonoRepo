@@ -16,9 +16,51 @@ type LearningPath struct {
 	ID          uint   `gorm:"primaryKey"`
 	Title       string `gorm:"not null"`
 	Description string
-	CreatedByID uint      `gorm:"index"`
-	CreatedBy   *User     `gorm:"constraint:OnDelete:SET NULL"`
+	Visibility  string `gorm:"default:private"`
+	CreatedByID uint   `gorm:"index"`
+	CreatedBy   *User  `gorm:"constraint:OnDelete:SET NULL"`
+	LockedByID  *uint  `gorm:"index"`
+	LockedBy    *User  `gorm:"constraint:OnDelete:SET NULL"`
+	LockedAt    *time.Time
 	CreatedAt   time.Time `gorm:"default:(datetime('now'))"`
+}
+
+type LearningPathCollaborator struct {
+	ID             uint          `gorm:"primaryKey"`
+	LearningPathID uint          `gorm:"index;not null"`
+	LearningPath   *LearningPath `gorm:"constraint:OnDelete:CASCADE"`
+	UserID         uint          `gorm:"index;not null"`
+	User           *User         `gorm:"constraint:OnDelete:CASCADE"`
+	Role           string        `gorm:"not null"` // owner|editor|collaborator|reader
+	CreatedAt      time.Time     `gorm:"default:(datetime('now'))"`
+}
+
+type LearningPathInvite struct {
+	ID             uint      `gorm:"primaryKey"`
+	LearningPathID uint      `gorm:"index;not null"`
+	Email          string    `gorm:"index;not null"`
+	Role           string    `gorm:"not null"`
+	Token          string    `gorm:"uniqueIndex;not null"`
+	ExpiresAt      time.Time `gorm:"not null"`
+	Accepted       bool      `gorm:"default:false"`
+	CreatedAt      time.Time `gorm:"default:(datetime('now'))"`
+}
+
+type RoadmapVersion struct {
+	ID             uint      `gorm:"primaryKey"`
+	LearningPathID uint      `gorm:"index;not null"`
+	AuthorID       uint      `gorm:"index;not null"`
+	DiagramJSON    string    `gorm:"type:text;not null"`
+	CreatedAt      time.Time `gorm:"default:(datetime('now'))"`
+}
+
+type AuditLog struct {
+	ID        uint      `gorm:"primaryKey"`
+	UserID    uint      `gorm:"index;not null"`
+	Action    string    `gorm:"not null"` // lp_lock, lp_unlock, lp_update_diagram, lp_invite, lp_invite_accept
+	TargetID  uint      `gorm:"index"`
+	Data      string    `gorm:"type:text"`
+	CreatedAt time.Time `gorm:"default:(datetime('now'))"`
 }
 
 // Pasos de la ruta
@@ -75,4 +117,50 @@ type RoadmapDiagram struct {
 	DiagramJSON    string        `gorm:"type:TEXT;not null"`
 	CreatedAt      time.Time     `gorm:"default:(datetime('now'))"`
 	UpdatedAt      *time.Time
+}
+
+// Comentarios sobre Roadmaps (no asociados a un paso específico)
+type RoadmapComment struct {
+	ID             uint          `gorm:"primaryKey"`
+	UserID         uint          `gorm:"index;not null"`
+	User           *User         `gorm:"constraint:OnDelete:CASCADE"`
+	LearningPathID uint          `gorm:"index;not null"`
+	LearningPath   *LearningPath `gorm:"constraint:OnDelete:CASCADE"`
+	Content        string        `gorm:"not null"`
+	CreatedAt      time.Time     `gorm:"default:(datetime('now'))"`
+}
+
+// Calificaciones genéricas para distintos objetivos
+type Rating struct {
+	ID         uint      `gorm:"primaryKey"`
+	UserID     uint      `gorm:"index;not null"`
+	User       *User     `gorm:"constraint:OnDelete:CASCADE"`
+	TargetType string    `gorm:"index;not null"` // "learning_path" | "resource"
+	TargetID   uint      `gorm:"index;not null"`
+	Score      int       `gorm:"not null"` // 1..5
+	CreatedAt  time.Time `gorm:"default:(datetime('now'))"`
+}
+
+// Solicitud de profesor
+type TeacherApplication struct {
+	ID          uint   `gorm:"primaryKey"`
+	UserID      uint   `gorm:"uniqueIndex;not null"`
+	User        *User  `gorm:"constraint:OnDelete:CASCADE"`
+	PublicName  string `gorm:"index"`
+	LegalName   string
+	Email       string `gorm:"index"`
+	Phone       string
+	Location    string
+	Referral    string
+	Topics      string
+	Ages        string
+	Expertise   string
+	Years       string
+	Bio         string `gorm:"type:text"`
+	VideoURL    string
+	CVURL       string
+	Status      string `gorm:"index;default:draft"` // draft|submitted|approved|rejected
+	SubmittedAt *time.Time
+	CreatedAt   time.Time `gorm:"default:(datetime('now'))"`
+	UpdatedAt   *time.Time
 }

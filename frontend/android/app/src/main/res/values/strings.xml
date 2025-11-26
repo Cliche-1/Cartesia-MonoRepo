@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">cartesia</string>
+    <string name="title_activity_main">cartesia</string>
+    <string name="package_name">com.cartesia.app</string>
+    <string name="custom_url_scheme">com.cartesia.app</string>
+</resources>

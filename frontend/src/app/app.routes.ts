@@ -1,10 +1,17 @@
 import { Routes } from '@angular/router';
 import { HomePage } from './pages/home/home.page';
+import { ModuleSelectPage } from './pages/start/module-select.page';
 import { RoadmapsOfficialPage } from './pages/roadmaps/official.page';
 import { RoadmapsAIPage } from './pages/roadmaps/ai.page';
 import { RoadmapsCommunityPage } from './pages/roadmaps/community.page';
 import { MyRoadmapsPage } from './pages/roadmaps/my.page';
 import { TutorLearnAIPage } from './pages/tutor/learn.page';
+import { TutorTeachersPage } from './pages/tutor/teachers.page';
+import { TutorMaterialsPage } from './pages/tutor/materials.page';
+import { TutorBecomePage } from './pages/tutor/become.page';
+import { TutorRegisterPage } from './pages/tutor/register.page';
+import { TutorApplyPage } from './pages/tutor/apply.page';
+import { TeacherProfilePage } from './pages/tutor/teacher-profile.page';
 import { TutorRoadmapChatPage } from './pages/tutor/roadmap-chat.page';
 import { ProPlansPage } from './pages/pro/pro.page';
 import { RoadmapEditorPage } from './pages/editor/roadmap-editor.page';
@@ -15,16 +22,24 @@ import { ProfilePage } from './pages/account/profile.page';
 import { FriendsPage } from './pages/social/friends.page';
 
 export const routes: Routes = [
-  { path: '', component: HomePage },
+  { path: '', component: ModuleSelectPage },
+  { path: 'home', component: HomePage },
   { path: 'roadmaps/oficiales', component: RoadmapsOfficialPage },
   { path: 'roadmaps/ia', component: RoadmapsAIPage },
   { path: 'roadmaps/comunidad', component: RoadmapsCommunityPage },
   { path: 'mis-roadmaps', component: MyRoadmapsPage },
   { path: 'roadmaps/editor', component: RoadmapEditorPage },
   { path: 'roadmaps/preview', component: RoadmapPreviewPage },
+  { path: 'buscar', loadComponent: () => import('./pages/search/search.page').then(m => m.SearchPage) },
   { path: 'login', component: LoginPage },
   { path: 'register', component: RegisterPage },
   { path: 'tutor/aprende', component: TutorLearnAIPage },
+  { path: 'tutor/aprende/profesores', component: TutorTeachersPage },
+  { path: 'tutor/aprende/materiales', component: TutorMaterialsPage },
+  { path: 'tutor/aprende/conviertete-en-profesor', component: TutorBecomePage },
+  { path: 'tutor/aprende/profesor/aplicar', component: TutorApplyPage },
+  { path: 'tutor/aprende/registro-profesor', component: TutorRegisterPage },
+  { path: 'tutor/profesor/perfil', component: TeacherProfilePage },
   { path: 'tutor/roadmap-chat', component: TutorRoadmapChatPage },
   { path: 'pro', component: ProPlansPage },
   { path: 'account', component: ProfilePage },

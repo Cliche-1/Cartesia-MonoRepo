@@ -55,3 +55,4 @@ backend/tmp/
 .DS_Store
 Thumbs.db
 node_modules
+.tools

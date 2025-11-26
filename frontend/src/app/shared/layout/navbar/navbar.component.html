@@ -1,0 +1,153 @@
+<header class="nav">
+  <a class="brand" routerLink="/" aria-label="Ir al inicio">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="cartesiaGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#c084fc"/>
+          <stop offset="100%" stop-color="#a78bfa"/>
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="url(#cartesiaGrad)"/>
+      <path d="M44 20c-8 0-14 6-14 12s6 12 14 12h-6c-6 0-12-6-12-12s6-12 12-12h6z" fill="#ffffff"/>
+      <path d="M40 24c-6 0-10 4-10 8s4 8 10 8h-4c-4 0-8-4-8-8s4-8 8-8h4z" fill="url(#cartesiaGrad)" opacity=".18"/>
+    </svg>
+    <span class="name">Cartesia</span>
+  </a>
+
+  <nav class="links" aria-label="Navegación principal">
+    <div class="dropdown" [class.open]="roadmapsOpen()">
+      <button
+        class="dropdown-trigger"
+        type="button"
+        (click)="toggleRoadmaps()"
+        (blur)="closeRoadmapsOnBlur($event)"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="roadmapsOpen()"
+      >
+        <i class="pi pi-map"></i>
+        <span>Roadmaps</span>
+        <i class="pi pi-chevron-down caret"></i>
+      </button>
+      <div class="menu" role="menu">
+        <a role="menuitem" routerLink="/roadmaps/oficiales" class="item">
+          <i class="pi pi-verified"></i>
+          <div class="info">
+            <span class="title">Roadmaps Oficiales</span>
+            <span class="desc">Roadmaps validados y curados por la comunidad</span>
+          </div>
+        </a>
+        <a role="menuitem" routerLink="/roadmaps/ia" class="item">
+          <i class="pi pi-robot"></i>
+          <i class="pi pi-sparkles"></i>
+          <div class="info">
+            <span class="title">Roadmaps IA</span>
+            <span class="desc">Genera roadmaps personalizados con Inteligencia Artificial</span>
+          </div>
+        </a>
+        <a role="menuitem" routerLink="/roadmaps/comunidad" class="item">
+          <i class="pi pi-users"></i>
+          <div class="info">
+            <span class="title">Roadmaps de la Comunidad</span>
+            <span class="desc">Explora roadmaps creados por otros usuarios</span>
+          </div>
+        </a>
+        <a role="menuitem" routerLink="/roadmaps/editor" class="item">
+          <i class="pi pi-pencil"></i>
+          <div class="info">
+            <span class="title">Editor de Roadmaps</span>
+            <span class="desc">Crea y organiza tu roadmap visualmente</span>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="dropdown" [class.open]="tutorOpen()">
+      <button
+        class="dropdown-trigger"
+        type="button"
+        (click)="toggleTutor()"
+        (blur)="closeTutorOnBlur($event)"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="tutorOpen()"
+      >
+        <i class="pi pi-graduation-cap"></i>
+        <span>Tutor IA</span>
+        <i class="pi pi-chevron-down caret"></i>
+      </button>
+      <div class="menu" role="menu">
+        <a role="menuitem" routerLink="/tutor/aprende" class="item">
+          <i class="pi pi-sparkles"></i>
+          <div class="info">
+            <span class="title">Aprende con IA</span>
+            <span class="desc">Recibe una guía personalizada acerca de cualquier tema</span>
+          </div>
+        </a>
+        <a role="menuitem" routerLink="/tutor/roadmap-chat" class="item">
+          <i class="pi pi-comments"></i>
+          <div class="info">
+            <span class="title">Roadmap Chat</span>
+            <span class="desc">Obtén orientación y consejos sobre un roadmap específico</span>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <a class="pro-badge" routerLink="/pro" title="Desbloquea funciones premium">
+      <i class="pi pi-star-fill"></i>
+      <span>Pro</span>
+    </a>
+  </nav>
+
+  <div class="actions">
+    <ng-container *ngIf="!api.authState(); else authActions">
+      <a class="btn ghost" routerLink="/login">Iniciar sesión</a>
+      <a class="btn primary" routerLink="/register">Registrarse</a>
+    </ng-container>
+    <ng-template #authActions>
+      <button class="icon-btn" (click)="toggleLang()" [attr.aria-expanded]="langOpen()" aria-haspopup="menu" title="Idioma">
+        <i class="pi pi-globe"></i>
+      </button>
+      <div class="menu right small" role="menu" *ngIf="langOpen()">
+        <button class="item plain" (click)="setLang('es')">Español</button>
+        <button class="item plain" (click)="setLang('en')">English</button>
+      </div>
+      <button class="icon-btn" title="Notificaciones"><i class="pi pi-bell"></i></button>
+      <div class="dropdown" [class.open]="accountOpen()">
+        <button
+          class="dropdown-trigger profile-btn"
+          type="button"
+          (click)="toggleAccount()"
+          (blur)="closeAccountOnBlur($event)"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="accountOpen()"
+        >
+          <span class="avatar">{{ avatarInitial }}</span>
+          <span class="uname">{{ username || 'Usuario' }}</span>
+          <i class="pi pi-chevron-down caret"></i>
+        </button>
+        <div class="menu right" role="menu">
+          <a role="menuitem" routerLink="/account" class="item">
+            <i class="pi pi-user"></i>
+            <span>Perfil</span>
+          </a>
+          <a role="menuitem" routerLink="/amigos" class="item">
+            <i class="pi pi-users"></i>
+            <span>Amigos</span>
+          </a>
+          <a role="menuitem" routerLink="/mis-roadmaps" class="item">
+            <i class="pi pi-list"></i>
+            <span>Mis roadmaps</span>
+          </a>
+          <a role="menuitem" routerLink="/roadmaps/editor" class="item">
+            <i class="pi pi-plus"></i>
+            <span>Nuevo roadmap</span>
+          </a>
+          <button role="menuitem" type="button" class="item plain" (click)="logout()">
+            <i class="pi pi-sign-out"></i>
+            <span>Salir</span>
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</header>

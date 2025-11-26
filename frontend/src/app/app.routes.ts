@@ -1,48 +1,28 @@
 import { Routes } from '@angular/router';
-import { HomePage } from './pages/home/home.page';
 import { ModuleSelectPage } from './pages/start/module-select.page';
-import { RoadmapsOfficialPage } from './pages/roadmaps/official.page';
-import { RoadmapsAIPage } from './pages/roadmaps/ai.page';
-import { RoadmapsCommunityPage } from './pages/roadmaps/community.page';
-import { MyRoadmapsPage } from './pages/roadmaps/my.page';
-import { TutorLearnAIPage } from './pages/tutor/learn.page';
-import { TutorTeachersPage } from './pages/tutor/teachers.page';
-import { TutorMaterialsPage } from './pages/tutor/materials.page';
-import { TutorBecomePage } from './pages/tutor/become.page';
-import { TutorRegisterPage } from './pages/tutor/register.page';
-import { TutorApplyPage } from './pages/tutor/apply.page';
-import { TeacherProfilePage } from './pages/tutor/teacher-profile.page';
-import { TutorRoadmapChatPage } from './pages/tutor/roadmap-chat.page';
-import { ProPlansPage } from './pages/pro/pro.page';
-import { RoadmapEditorPage } from './pages/editor/roadmap-editor.page';
-import { RoadmapPreviewPage } from './pages/preview/roadmap-preview.page';
-import { LoginPage } from './pages/auth/login.page';
-import { RegisterPage } from './pages/auth/register.page';
-import { ProfilePage } from './pages/account/profile.page';
-import { FriendsPage } from './pages/social/friends.page';
 
 export const routes: Routes = [
   { path: '', component: ModuleSelectPage },
-  { path: 'home', component: HomePage },
-  { path: 'roadmaps/oficiales', component: RoadmapsOfficialPage },
-  { path: 'roadmaps/ia', component: RoadmapsAIPage },
-  { path: 'roadmaps/comunidad', component: RoadmapsCommunityPage },
-  { path: 'mis-roadmaps', component: MyRoadmapsPage },
-  { path: 'roadmaps/editor', component: RoadmapEditorPage },
-  { path: 'roadmaps/preview', component: RoadmapPreviewPage },
+  { path: 'home', loadComponent: () => import('./pages/home/home.page').then(m => m.HomePage) },
+  { path: 'roadmaps/oficiales', loadComponent: () => import('./pages/roadmaps/official.page').then(m => m.RoadmapsOfficialPage) },
+  { path: 'roadmaps/ia', loadComponent: () => import('./pages/roadmaps/ai.page').then(m => m.RoadmapsAIPage) },
+  { path: 'roadmaps/comunidad', loadComponent: () => import('./pages/roadmaps/community.page').then(m => m.RoadmapsCommunityPage) },
+  { path: 'mis-roadmaps', loadComponent: () => import('./pages/roadmaps/my.page').then(m => m.MyRoadmapsPage) },
+  { path: 'roadmaps/editor', loadComponent: () => import('./pages/editor/roadmap-editor.page').then(m => m.RoadmapEditorPage) },
+  { path: 'roadmaps/preview', loadComponent: () => import('./pages/preview/roadmap-preview.page').then(m => m.RoadmapPreviewPage) },
   { path: 'buscar', loadComponent: () => import('./pages/search/search.page').then(m => m.SearchPage) },
-  { path: 'login', component: LoginPage },
-  { path: 'register', component: RegisterPage },
-  { path: 'tutor/aprende', component: TutorLearnAIPage },
-  { path: 'tutor/aprende/profesores', component: TutorTeachersPage },
-  { path: 'tutor/aprende/materiales', component: TutorMaterialsPage },
-  { path: 'tutor/aprende/conviertete-en-profesor', component: TutorBecomePage },
-  { path: 'tutor/aprende/profesor/aplicar', component: TutorApplyPage },
-  { path: 'tutor/aprende/registro-profesor', component: TutorRegisterPage },
-  { path: 'tutor/profesor/perfil', component: TeacherProfilePage },
-  { path: 'tutor/roadmap-chat', component: TutorRoadmapChatPage },
-  { path: 'pro', component: ProPlansPage },
-  { path: 'account', component: ProfilePage },
-  { path: 'amigos', component: FriendsPage },
+  { path: 'login', loadComponent: () => import('./pages/auth/login.page').then(m => m.LoginPage) },
+  { path: 'register', loadComponent: () => import('./pages/auth/register.page').then(m => m.RegisterPage) },
+  { path: 'tutor/aprende', loadComponent: () => import('./pages/tutor/learn.page').then(m => m.TutorLearnAIPage) },
+  { path: 'tutor/aprende/profesores', loadComponent: () => import('./pages/tutor/teachers.page').then(m => m.TutorTeachersPage) },
+  { path: 'tutor/aprende/materiales', loadComponent: () => import('./pages/tutor/materials.page').then(m => m.TutorMaterialsPage) },
+  { path: 'tutor/aprende/conviertete-en-profesor', loadComponent: () => import('./pages/tutor/become.page').then(m => m.TutorBecomePage) },
+  { path: 'tutor/aprende/profesor/aplicar', loadComponent: () => import('./pages/tutor/apply.page').then(m => m.TutorApplyPage) },
+  { path: 'tutor/aprende/registro-profesor', loadComponent: () => import('./pages/tutor/register.page').then(m => m.TutorRegisterPage) },
+  { path: 'tutor/profesor/perfil', loadComponent: () => import('./pages/tutor/teacher-profile.page').then(m => m.TeacherProfilePage) },
+  { path: 'tutor/roadmap-chat', loadComponent: () => import('./pages/tutor/roadmap-chat.page').then(m => m.TutorRoadmapChatPage) },
+  { path: 'pro', loadComponent: () => import('./pages/pro/pro.page').then(m => m.ProPlansPage) },
+  { path: 'account', loadComponent: () => import('./pages/account/profile.page').then(m => m.ProfilePage) },
+  { path: 'amigos', loadComponent: () => import('./pages/social/friends.page').then(m => m.FriendsPage) },
   { path: '**', redirectTo: '' }
 ];

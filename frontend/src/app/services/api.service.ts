@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 export interface AuthResponse { token: string }
 export interface UserInfo { id: number; email: string; username: string }
 export interface DiagramData { nodes: any[]; edges: any[] }
-export interface LearningPath { id: number; title: string; description?: string; createdAt?: string; stepsCount?: number; resourcesCount?: number; thumbnail?: string; provider?: string }
+export interface LearningPath { id: number; title: string; description?: string; visibility?: 'public'|'private'; createdAt?: string; stepsCount?: number; resourcesCount?: number; thumbnail?: string; provider?: string }
 export interface ResourceUploadResponse { type: string; title?: string; url: string; mimeType?: string; size?: number; storagePath?: string }
 export interface SearchRoadmapsResponse { items: LearningPath[]; page: number; pageSize: number; total: number; sortBy: string; sortDir: 'ASC'|'DESC' }
 
@@ -71,6 +71,11 @@ export class ApiService {
     return await firstValueFrom(this.http.get<LearningPath[]>(url));
   }
 
+  async listPublicLearningPaths(): Promise<LearningPath[]> {
+    const url = `${this.baseUrl}/public-learning-paths`;
+    return await firstValueFrom(this.http.get<LearningPath[]>(url));
+  }
+
   async listMyLearningPaths(): Promise<LearningPath[]> {
     const url = `${this.baseUrl}/learning-paths/mine`;
     return await firstValueFrom(this.http.get<LearningPath[]>(url, { headers: this.authHeaders() }));
@@ -79,6 +84,16 @@ export class ApiService {
   async createLearningPath(payload: { title: string; description?: string; visibility?: 'public'|'private' }): Promise<LearningPath> {
     const url = `${this.baseUrl}/learning-paths`;
     return await firstValueFrom(this.http.post<LearningPath>(url, payload, { headers: this.authHeaders() }));
+  }
+
+  async updateLearningPath(id: number, data: { title?: string; description?: string; visibility?: 'public'|'private' }): Promise<LearningPath> {
+    const url = `${this.baseUrl}/learning-paths/${id}`;
+    return await firstValueFrom(this.http.put<LearningPath>(url, data, { headers: this.authHeaders() }));
+  }
+
+  async deleteLearningPath(id: number): Promise<{ ok: boolean }> {
+    const url = `${this.baseUrl}/learning-paths/${id}`;
+    return await firstValueFrom(this.http.delete<{ ok: boolean }>(url, { headers: this.authHeaders() }));
   }
 
   async lockLearningPath(id: number): Promise<{ ok: boolean }> {

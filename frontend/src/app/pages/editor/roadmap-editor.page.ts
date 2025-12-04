@@ -23,9 +23,7 @@ import { ApiService } from '../../services/api.service';
         <div class="left">
           <button type="button" class="tb-btn ghost" (click)="closeEditor()" title="Cerrar">✕</button>
           <div class="title-wrap">
-            <input class="title-input" type="text" [(ngModel)]="metaTitle" placeholder="Roadmap sin título" />
-            <button type="button" class="tb-btn icon" title="Editar">🖉</button>
-            <button type="button" class="tb-btn icon" title="Opciones">⋯</button>
+            <input class="title-input" type="text" [(ngModel)]="metaTitle" (ngModelChange)="onTitleChange()" placeholder="Roadmap sin título" />
           </div>
           <select class="lp-select" [ngModel]="learningPathId" (ngModelChange)="onSelectRoadmap($event)">
             <option [ngValue]="null">Nuevo roadmap</option>
@@ -34,12 +32,11 @@ import { ApiService } from '../../services/api.service';
           <input class="subtitle-input" type="text" [(ngModel)]="metaSubtitle" placeholder="Añade una descripción" />
         </div>
         <div class="right">
-          <select class="visibility" [(ngModel)]="visibility" title="Visibilidad">
+          <select class="visibility" [(ngModel)]="visibility" (ngModelChange)="onEditorVisibilityChange()" title="Visibilidad">
             <option value="private">Solo visible para mí</option>
             <option value="public">Público</option>
           </select>
           <button type="button" class="tb-btn link" (click)="previewRoadmap()">Previsualización</button>
-          <button type="button" class="tb-btn link" (click)="togglePanel('settings')">Colaboración</button>
           <button type="button" class="tb-btn" (click)="openExportPreview()" [disabled]="!learningPathId">Exportar</button>
           <button type="button" class="tb-btn primary" (click)="saveAll()" [disabled]="savingBackend || !canEdit">{{ savingBackend ? 'Guardando…' : 'Guardar' }}</button>
           <span class="save-status" *ngIf="saveMsg" [class.ok]="saveOK" [class.err]="saveErr">{{saveMsg}}</span>
@@ -497,6 +494,7 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       return false;
     });
     this.graph.bindKey(['ctrl+v', 'meta+v'], () => { this.graph.paste(); return false; });
+    this.graph.bindKey(['ctrl+s','meta+s'], () => { this.saveAll(); return false; });
 
     // Doble click para editar texto simple
     this.graph.on('node:dblclick', ({ node }) => {
@@ -844,6 +842,9 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     if (!this.learningPathId) return;
     try {
       this.savingBackend = true;
+      try {
+        await this.api.updateLearningPath(this.learningPathId, { title: this.metaTitle, description: this.metaSubtitle, visibility: this.visibility });
+      } catch {}
       const json = this.graph?.toJSON() as any;
       const ok = await this.api.updateDiagram(this.learningPathId, json);
       if (ok) {
@@ -875,6 +876,24 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       }
     }
     finally { this.savingBackend = false; }
+  }
+
+  async onTitleChange(): Promise<void> {
+    if (!this.learningPathId) return;
+    try {
+      await this.api.updateLearningPath(this.learningPathId, { title: this.metaTitle });
+      this.saveMsg = 'Título guardado'; this.saveOK = true; this.saveErr = false;
+    } catch {}
+  }
+
+  async onEditorVisibilityChange(): Promise<void> {
+    if (!this.learningPathId) return;
+    try {
+      await this.api.updateLearningPath(this.learningPathId, { visibility: this.visibility });
+      this.saveMsg = 'Visibilidad actualizada'; this.saveOK = true; this.saveErr = false;
+    } catch (e) {
+      this.saveMsg = 'No se pudo actualizar visibilidad'; this.saveOK = false; this.saveErr = true;
+    }
   }
 
   onSelectRoadmap(id: number | null): void {

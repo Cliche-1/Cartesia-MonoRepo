@@ -1,12 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService, LearningPath } from '../../services/api.service';
 
 @Component({
   selector: 'app-my-roadmaps',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="page">
       <header class="header">
@@ -26,8 +27,18 @@ import { ApiService, LearningPath } from '../../services/api.service';
             </div>
             <p class="desc" *ngIf="lp.description">{{ lp.description }}</p>
             <div class="row gap">
+              <label>
+                <span class="muted">Visibilidad</span>
+                <select [(ngModel)]="lp.visibility" (ngModelChange)="onChangeVisibility(lp)">
+                  <option value="private">Privado</option>
+                  <option value="public">Público</option>
+                </select>
+              </label>
+            </div>
+            <div class="row gap">
               <a class="btn ghost" [routerLink]="['/roadmaps/editor']" [queryParams]="{ lp: lp.id }">Editar</a>
               <a class="btn" [routerLink]="['/roadmaps/preview']" [queryParams]="{ lp: lp.id }">Preview</a>
+              <button class="btn" (click)="onDelete(lp)">Eliminar</button>
             </div>
           </article>
           <p *ngIf="items().length===0" class="muted">Aún no has creado roadmaps.</p>
@@ -81,6 +92,26 @@ export class MyRoadmapsPage implements OnInit {
       this.router.navigateByUrl(url);
     } catch (e) {
       console.error('No se pudo crear el roadmap', e);
+    }
+  }
+
+  async onChangeVisibility(lp: LearningPath) {
+    try {
+      const updated = await this.api.updateLearningPath(lp.id, { visibility: lp.visibility });
+      const next = this.items().map(i => i.id === lp.id ? { ...i, visibility: updated.visibility } : i);
+      this.items.set(next);
+    } catch (e) {
+      console.error('No se pudo actualizar visibilidad', e);
+    }
+  }
+
+  async onDelete(lp: LearningPath) {
+    if (!confirm('¿Eliminar este roadmap?')) return;
+    try {
+      await this.api.deleteLearningPath(lp.id);
+      this.items.set(this.items().filter(i => i.id !== lp.id));
+    } catch (e) {
+      console.error('No se pudo eliminar el roadmap', e);
     }
   }
 }

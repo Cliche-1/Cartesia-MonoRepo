@@ -29,14 +29,14 @@
         <i class="pi pi-chevron-down caret"></i>
       </button>
       <div class="menu" role="menu">
-        <a role="menuitem" routerLink="/roadmaps/oficiales" class="item">
+        <a role="menuitem" routerLink="/roadmaps/oficiales" (mousedown)="navigate('/roadmaps/oficiales')" class="item">
           <i class="pi pi-verified"></i>
           <div class="info">
             <span class="title">Roadmaps Oficiales</span>
             <span class="desc">Roadmaps validados y curados por la comunidad</span>
           </div>
         </a>
-        <a role="menuitem" routerLink="/roadmaps/ia" class="item">
+        <a role="menuitem" routerLink="/roadmaps/ia" (mousedown)="navigate('/roadmaps/ia')" class="item">
           <i class="pi pi-robot"></i>
           <i class="pi pi-sparkles"></i>
           <div class="info">
@@ -44,14 +44,14 @@
             <span class="desc">Genera roadmaps personalizados con Inteligencia Artificial</span>
           </div>
         </a>
-        <a role="menuitem" routerLink="/roadmaps/comunidad" class="item">
+        <a role="menuitem" routerLink="/roadmaps/comunidad" (mousedown)="navigate('/roadmaps/comunidad')" class="item">
           <i class="pi pi-users"></i>
           <div class="info">
             <span class="title">Roadmaps de la Comunidad</span>
             <span class="desc">Explora roadmaps creados por otros usuarios</span>
           </div>
         </a>
-        <a role="menuitem" routerLink="/roadmaps/editor" class="item">
+        <a role="menuitem" routerLink="/roadmaps/editor" (mousedown)="navigate('/roadmaps/editor')" class="item">
           <i class="pi pi-pencil"></i>
           <div class="info">
             <span class="title">Editor de Roadmaps</span>
@@ -134,7 +134,7 @@
             <i class="pi pi-users"></i>
             <span>Amigos</span>
           </a>
-          <a role="menuitem" routerLink="/mis-roadmaps" class="item">
+          <a role="menuitem" routerLink="/mis-roadmaps" (mousedown)="navigate('/mis-roadmaps')" class="item">
             <i class="pi pi-list"></i>
             <span>Mis roadmaps</span>
           </a>

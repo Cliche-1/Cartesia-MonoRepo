@@ -87,4 +87,11 @@ export class NavbarComponent {
     localStorage.setItem('lang', code);
     this.langOpen.set(false);
   }
+
+  navigate(path: string) {
+    this.router.navigateByUrl(path);
+    this.roadmapsOpen.set(false);
+    this.tutorOpen.set(false);
+    this.accountOpen.set(false);
+  }
 }

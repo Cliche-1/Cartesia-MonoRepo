@@ -27,6 +27,7 @@ type Roadmap struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
 	Title       string    `gorm:"size:255;not null" json:"title"`
 	Description string    `gorm:"type:text" json:"description"`
+	Visibility  string    `gorm:"size:16;not null;default:private" json:"visibility"`
 	JSONData    string    `gorm:"type:text" json:"-"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
@@ -164,7 +165,11 @@ func main() {
 		if err := c.BodyParser(&payload); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "payload inválido"})
 		}
-		r := &Roadmap{Title: strings.TrimSpace(payload.Title), Description: strings.TrimSpace(payload.Description)}
+		vis := "private"
+		if strings.EqualFold(strings.TrimSpace(payload.Visibility), "public") {
+			vis = "public"
+		}
+		r := &Roadmap{Title: strings.TrimSpace(payload.Title), Description: strings.TrimSpace(payload.Description), Visibility: vis}
 		if r.Title == "" {
 			r.Title = "Roadmap"
 		}
@@ -183,7 +188,19 @@ func main() {
 		}
 		var out []fiber.Map
 		for _, r := range list {
-			out = append(out, fiber.Map{"id": r.ID, "title": r.Title, "description": r.Description, "createdAt": r.CreatedAt})
+			out = append(out, fiber.Map{"id": r.ID, "title": r.Title, "description": r.Description, "visibility": r.Visibility, "createdAt": r.CreatedAt})
+		}
+		return c.JSON(out)
+	})
+
+	api.Get("/public-learning-paths", func(c *fiber.Ctx) error {
+		var list []Roadmap
+		if err := db.Where("visibility = ?", "public").Order("created_at desc").Find(&list).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo listar"})
+		}
+		var out []fiber.Map
+		for _, r := range list {
+			out = append(out, fiber.Map{"id": r.ID, "title": r.Title, "description": r.Description, "visibility": r.Visibility, "createdAt": r.CreatedAt})
 		}
 		return c.JSON(out)
 	})
@@ -204,9 +221,79 @@ func main() {
 		}
 		var out []fiber.Map
 		for _, r := range list {
-			out = append(out, fiber.Map{"id": r.ID, "title": r.Title, "description": r.Description, "createdAt": r.CreatedAt})
+			out = append(out, fiber.Map{"id": r.ID, "title": r.Title, "description": r.Description, "visibility": r.Visibility, "createdAt": r.CreatedAt})
 		}
 		return c.JSON(out)
+
+	})
+
+	api.Put("/learning-paths/:id", func(c *fiber.Ctx) error {
+		auth := c.Get("Authorization")
+		parts := strings.SplitN(auth, " ", 2)
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "no autorizado"})
+		}
+		claims, err := parseToken(jwtSecret, parts[1])
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token inválido"})
+		}
+		var payload struct {
+			Title       string `json:"title"`
+			Description string `json:"description"`
+			Visibility  string `json:"visibility"`
+		}
+		if err := c.BodyParser(&payload); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "payload inválido"})
+		}
+		var r Roadmap
+		if err := db.First(&r, c.Params("id")).Error; err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no encontrado"})
+		}
+		var ur UserRoadmap
+		if err := db.Where("user_id = ? AND roadmap_id = ?", claims.UserID, r.ID).First(&ur).Error; err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "forbidden"})
+		}
+		r.Title = strings.TrimSpace(payload.Title)
+		if r.Title == "" {
+			r.Title = "Roadmap"
+		}
+		r.Description = strings.TrimSpace(payload.Description)
+		if strings.EqualFold(strings.TrimSpace(payload.Visibility), "public") {
+			r.Visibility = "public"
+		} else {
+			r.Visibility = "private"
+		}
+		if err := db.Save(&r).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo actualizar"})
+		}
+		return c.JSON(fiber.Map{"id": r.ID, "title": r.Title, "description": r.Description, "visibility": r.Visibility, "createdAt": r.CreatedAt})
+	})
+
+	api.Delete("/learning-paths/:id", func(c *fiber.Ctx) error {
+		auth := c.Get("Authorization")
+		parts := strings.SplitN(auth, " ", 2)
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "no autorizado"})
+		}
+		claims, err := parseToken(jwtSecret, parts[1])
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token inválido"})
+		}
+		var r Roadmap
+		if err := db.First(&r, c.Params("id")).Error; err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no encontrado"})
+		}
+		var ur UserRoadmap
+		if err := db.Where("user_id = ? AND roadmap_id = ?", claims.UserID, r.ID).First(&ur).Error; err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "forbidden"})
+		}
+		if err := db.Where("roadmap_id = ?", r.ID).Delete(&UserRoadmap{}).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"ok": false})
+		}
+		if err := db.Delete(&r).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"ok": false})
+		}
+		return c.JSON(fiber.Map{"ok": true})
 	})
 
 	api.Get("/learning-paths/:id/diagram", func(c *fiber.Ctx) error {

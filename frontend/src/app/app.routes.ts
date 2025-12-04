@@ -8,6 +8,7 @@ export const routes: Routes = [
   { path: 'roadmaps/oficiales', loadComponent: () => import('./pages/roadmaps/official.page').then(m => m.RoadmapsOfficialPage) },
   { path: 'roadmaps/ia', loadComponent: () => import('./pages/roadmaps/ai.page').then(m => m.RoadmapsAIPage) },
   { path: 'roadmaps/comunidad', loadComponent: () => import('./pages/roadmaps/community.page').then(m => m.RoadmapsCommunityPage) },
+  { path: 'roadmaps/comunidad/:id', loadComponent: () => import('./pages/roadmaps/community-detail.page').then(m => m.CommunityRoadmapDetailPage) },
   { path: 'mis-roadmaps', loadComponent: () => import('./pages/roadmaps/my.page').then(m => m.MyRoadmapsPage) },
   { path: 'roadmaps/editor', canActivate: [authGuard], loadComponent: () => import('./pages/editor/roadmap-editor.page').then(m => m.RoadmapEditorPage) },
   { path: 'roadmaps/preview', loadComponent: () => import('./pages/preview/roadmap-preview.page').then(m => m.RoadmapPreviewPage) },

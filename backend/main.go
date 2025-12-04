@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/golang-jwt/jwt/v5"
@@ -170,9 +172,6 @@ func main() {
 			vis = "public"
 		}
 		r := &Roadmap{Title: strings.TrimSpace(payload.Title), Description: strings.TrimSpace(payload.Description), Visibility: vis}
-		if r.Title == "" {
-			r.Title = "Roadmap"
-		}
 		if err := db.Create(r).Error; err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo crear"})
 		}
@@ -237,12 +236,22 @@ func main() {
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token inválido"})
 		}
-		var payload struct {
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			Visibility  string `json:"visibility"`
+		m := map[string]string{}
+		// intentar primero como application/json
+		if c.Is("json") {
+			_ = json.Unmarshal(c.Body(), &m)
 		}
-		if err := c.BodyParser(&payload); err != nil {
+		// leer campos como form si están presentes
+		if v := c.FormValue("title"); v != "" {
+			m["title"] = v
+		}
+		if v := c.FormValue("description"); v != "" {
+			m["description"] = v
+		}
+		if v := c.FormValue("visibility"); v != "" {
+			m["visibility"] = v
+		}
+		if len(m) == 0 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "payload inválido"})
 		}
 		var r Roadmap
@@ -253,15 +262,18 @@ func main() {
 		if err := db.Where("user_id = ? AND roadmap_id = ?", claims.UserID, r.ID).First(&ur).Error; err != nil {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "forbidden"})
 		}
-		r.Title = strings.TrimSpace(payload.Title)
-		if r.Title == "" {
-			r.Title = "Roadmap"
+		if v, ok := m["title"]; ok {
+			r.Title = strings.TrimSpace(v)
 		}
-		r.Description = strings.TrimSpace(payload.Description)
-		if strings.EqualFold(strings.TrimSpace(payload.Visibility), "public") {
-			r.Visibility = "public"
-		} else {
-			r.Visibility = "private"
+		if v, ok := m["description"]; ok {
+			r.Description = strings.TrimSpace(v)
+		}
+		if v, ok := m["visibility"]; ok {
+			if strings.EqualFold(strings.TrimSpace(v), "public") {
+				r.Visibility = "public"
+			} else {
+				r.Visibility = "private"
+			}
 		}
 		if err := db.Save(&r).Error; err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo actualizar"})

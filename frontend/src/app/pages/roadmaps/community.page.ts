@@ -36,7 +36,7 @@ import { ApiService, LearningPath } from '../../services/api.service';
           </div>
           <p class="desc" *ngIf="lp.description">{{ lp.description }}</p>
           <div class="row gap">
-            <a class="btn" [routerLink]="['/roadmaps/preview']" [queryParams]="{ lp: lp.id }">Abrir</a>
+            <a class="btn" [routerLink]="['/roadmaps/comunidad', lp.id]" target="_blank">Abrir</a>
           </div>
         </article>
         <p *ngIf="filtered().length===0" class="muted">Sin resultados.</p>

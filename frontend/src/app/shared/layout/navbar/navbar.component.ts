@@ -78,9 +78,15 @@ export class NavbarComponent {
   }
 
   logout() {
-    this.api.token = null;
-    this.accountOpen.set(false);
-    this.router.navigateByUrl('/login');
+    try {
+      this.api.token = '' as any;
+      localStorage.removeItem('cartesia.token');
+      this.api.authState.set(false);
+      this.username = '';
+      this.avatarInitial = 'U';
+      this.accountOpen.set(false);
+      this.router.navigateByUrl('/login');
+    } catch {}
   }
 
   setLang(code: 'es'|'en') {

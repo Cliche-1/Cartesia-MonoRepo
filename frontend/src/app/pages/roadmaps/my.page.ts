@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService, LearningPath } from '../../services/api.service';
 
 @Component({
@@ -13,13 +13,13 @@ import { ApiService, LearningPath } from '../../services/api.service';
         <h1>Mis roadmaps</h1>
         <p class="muted">Roadmaps que has creado</p>
         <div class="actions">
-          <a class="btn primary" routerLink="/roadmaps/editor">Nuevo roadmap</a>
+          <button class="btn primary" (click)="createNew()">Nuevo roadmap</button>
         </div>
       </header>
 
       <ng-container *ngIf="api.isAuthenticated(); else authPrompt">
         <div class="grid">
-          <article class="card glass" *ngFor="let lp of items">
+          <article class="card glass" *ngFor="let lp of items()">
             <div class="row">
               <i class="pi pi-map"></i>
               <h3 class="title">{{ lp.title }}</h3>
@@ -30,7 +30,7 @@ import { ApiService, LearningPath } from '../../services/api.service';
               <a class="btn" [routerLink]="['/roadmaps/preview']" [queryParams]="{ lp: lp.id }">Preview</a>
             </div>
           </article>
-          <p *ngIf="items.length===0" class="muted">Aún no has creado roadmaps.</p>
+          <p *ngIf="items().length===0" class="muted">Aún no has creado roadmaps.</p>
         </div>
       </ng-container>
 
@@ -59,16 +59,28 @@ import { ApiService, LearningPath } from '../../services/api.service';
   `]
 })
 export class MyRoadmapsPage implements OnInit {
-  items: LearningPath[] = [];
-  constructor(public api: ApiService) {}
+  items = signal<LearningPath[]>([]);
+  constructor(public api: ApiService, private router: Router) {}
 
   async ngOnInit() {
     if (!this.api.isAuthenticated()) return;
     try {
-      this.items = await this.api.listMyLearningPaths();
+      const list = await this.api.listMyLearningPaths();
+      this.items.set(list || []);
     } catch (e) {
       console.error('Error cargando mis roadmaps', e);
-      this.items = [];
+      this.items.set([]);
+    }
+  }
+
+  async createNew() {
+    if (!this.api.isAuthenticated()) { this.router.navigateByUrl('/login'); return; }
+    try {
+      const lp = await this.api.createLearningPath({ title: 'Roadmap', description: '', visibility: 'private' });
+      const url = this.router.createUrlTree(['/roadmaps/editor'], { queryParams: { lp: lp?.id } }).toString();
+      this.router.navigateByUrl(url);
+    } catch (e) {
+      console.error('No se pudo crear el roadmap', e);
     }
   }
 }

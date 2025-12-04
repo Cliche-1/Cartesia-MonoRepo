@@ -37,19 +37,11 @@ testem.log
 /typings
 __screenshots__/
 
-# Backend (Go)
-backend/server.exe
-backend/data/*.db
-backend/data/*.sqlite
-backend/data/*.sqlite3
+# Android (Capacitor)
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
 backend/.env
-backend/bin/
-backend/tmp/
-
-# Root folders to ignore (legacy)
-/.angular/
-/public/
-/src/
 
 # System files
 .DS_Store

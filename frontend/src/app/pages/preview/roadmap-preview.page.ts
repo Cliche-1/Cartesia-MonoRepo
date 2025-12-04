@@ -93,7 +93,7 @@ import { ApiService, LearningPath } from '../../services/api.service';
         <h3>Opiniones</h3>
         <div class="list">
           <article class="review" *ngFor="let c of comments">
-            <div class="avatar">{{ c.username?.charAt(0) || '?' }}</div>
+            <div class="avatar">{{ (c.username || '?').charAt(0) }}</div>
             <div class="content">
               <div class="meta"><span class="name">{{c.username}}</span> • <span class="date">{{c.createdAt | date:'mediumDate'}}</span></div>
               <p>{{c.content}}</p>
@@ -218,12 +218,10 @@ export class RoadmapPreviewPage implements OnInit, OnDestroy {
     const exp = this.route.snapshot.queryParamMap.get('export');
     if (this.lpId) {
       this.api.getLearningPathSummary(this.lpId).then(s => this.summary = s as any).catch(() => {});
-      this.api.getLearningPathDiagram(this.lpId).then(d => this.loadGraphFromJSON(d?.diagramJSON)).catch(() => this.loadGraph());
+      this.api.getLearningPathDiagram(this.lpId).then(d => this.loadGraphFromJSON(d?.diagramJSON)).catch(() => {});
       this.api.getLearningPathComments(this.lpId).then(r => this.comments = r.items || []).catch(() => {});
       this.loadRatings();
       this.loadVersions();
-    } else {
-      this.loadGraph();
     }
     if (exp === '1') { this.exportOpen = true; }
     // Asegurar que las aristas se rendericen con conectores suaves
@@ -242,16 +240,7 @@ export class RoadmapPreviewPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void { this.graph?.dispose(); }
 
-  private loadGraph() {
-    try {
-      const str = localStorage.getItem('roadmap-editor-graph');
-      if (!str) return;
-      const data = JSON.parse(str);
-      this.graph?.fromJSON(data);
-      // Tras cargar, aplicar conectores suaves
-      this.applySmoothConnectors();
-    } catch (e) { console.error('Error al cargar previsualización', e); }
-  }
+  private loadGraph() { /* no-op: sin persistencia local */ }
 
   private loadGraphFromJSON(json?: string) {
     if (!json) return;

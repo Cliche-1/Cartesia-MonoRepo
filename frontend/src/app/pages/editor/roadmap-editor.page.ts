@@ -23,14 +23,18 @@ import { ApiService } from '../../services/api.service';
         <div class="left">
           <button type="button" class="tb-btn ghost" (click)="closeEditor()" title="Cerrar">✕</button>
           <div class="title-wrap">
-            <input class="title-input" type="text" [(ngModel)]="metaTitle" (ngModelChange)="saveMeta()" placeholder="Roadmap sin título" />
+            <input class="title-input" type="text" [(ngModel)]="metaTitle" placeholder="Roadmap sin título" />
             <button type="button" class="tb-btn icon" title="Editar">🖉</button>
             <button type="button" class="tb-btn icon" title="Opciones">⋯</button>
           </div>
-          <input class="subtitle-input" type="text" [(ngModel)]="metaSubtitle" (ngModelChange)="saveMeta()" placeholder="Añade una descripción" />
+          <select class="lp-select" [ngModel]="learningPathId" (ngModelChange)="onSelectRoadmap($event)">
+            <option [ngValue]="null">Nuevo roadmap</option>
+            <option *ngFor="let p of paths" [ngValue]="p.id">Editar: {{ p.title }}</option>
+          </select>
+          <input class="subtitle-input" type="text" [(ngModel)]="metaSubtitle" placeholder="Añade una descripción" />
         </div>
         <div class="right">
-          <select class="visibility" [(ngModel)]="visibility" (ngModelChange)="saveMeta()" title="Visibilidad">
+          <select class="visibility" [(ngModel)]="visibility" title="Visibilidad">
             <option value="private">Solo visible para mí</option>
             <option value="public">Público</option>
           </select>
@@ -418,8 +422,6 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       }
     }
     this.fetchLearningPaths();
-    // Cargar metadatos antes
-    this.loadMeta();
     this.graph = new Graph({
       container: this.graphEl.nativeElement,
       grid: true,
@@ -731,31 +733,10 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
   resetZoom(): void { this.graph?.zoomTo(1); }
 
   // Guardar y cargar desde localStorage
-  saveGraph(): void {
-    try {
-      const data = this.graph?.toJSON();
-      localStorage.setItem('roadmap-editor-graph', JSON.stringify(data));
-    } catch (e) { console.error('Error al guardar el roadmap', e); }
-  }
-  saveMeta(): void {
-    try {
-      const meta = { title: this.metaTitle, subtitle: this.metaSubtitle, visibility: this.visibility };
-      localStorage.setItem('roadmap-editor-meta', JSON.stringify(meta));
-    } catch (e) { console.error('Error al guardar metadatos', e); }
-  }
-  loadMeta(): void {
-    try {
-      const str = localStorage.getItem('roadmap-editor-meta');
-      if (!str) return;
-      const meta = JSON.parse(str);
-      this.metaTitle = String(meta.title || this.metaTitle);
-      this.metaSubtitle = String(meta.subtitle || '');
-      this.visibility = (meta.visibility === 'public' ? 'public' : 'private');
-    } catch (e) { console.error('Error al cargar metadatos', e); }
-  }
+  saveGraph(): void {}
+  saveMeta(): void {}
+  loadMeta(): void {}
   saveAll(): void {
-    this.saveGraph();
-    this.saveMeta();
     if (this.api.isAuthenticated()) {
       // Si no hay LP seleccionado, crear uno primero
       if (!this.learningPathId) {
@@ -772,24 +753,16 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
       }
       this.saveToBackend();
     } else {
-      this.saveOK = false; this.saveErr = false; this.saveMsg = 'Guardado local. Inicia sesión para guardar en la nube';
+      this.saveOK = false; this.saveErr = false; this.saveMsg = 'Inicia sesión para guardar en la base de datos';
     }
   }
-  loadGraph(): void {
-    try {
-      const str = localStorage.getItem('roadmap-editor-graph');
-      if (!str) return;
-      const data = JSON.parse(str);
-      this.graph?.fromJSON(data);
-    } catch (e) { console.error('Error al cargar el roadmap', e); }
-  }
+  loadGraph(): void {}
 
   async fetchLearningPaths(): Promise<void> {
     try {
       const mine = await this.api.listMyLearningPaths();
       this.paths = (mine || []).map((p: any) => ({ id: Number(p.id), title: String(p.title || '') }));
-      // Solo seleccionar por defecto uno propio
-      if (!this.learningPathId && this.paths.length) this.learningPathId = this.paths[0].id;
+      
       if (this.learningPathId) {
         this.loadFromBackend();
         await this.tryLock();
@@ -904,17 +877,28 @@ export class RoadmapEditorPage implements OnInit, OnDestroy {
     finally { this.savingBackend = false; }
   }
 
+  onSelectRoadmap(id: number | null): void {
+    this.learningPathId = (id && Number(id) > 0) ? Number(id) : null;
+    if (this.learningPathId) {
+      this.loadFromBackend();
+      this.tryLock();
+      this.loadCollaborators();
+    } else {
+      this.graph?.clearCells();
+      this.canEdit = true;
+      this.saveMsg = '';
+      this.saveOK = false;
+      this.saveErr = false;
+    }
+  }
+
   previewRoadmap(): void {
-    this.saveGraph();
-    this.saveMeta();
     const url = this.router.createUrlTree(['/roadmaps/preview'], { queryParams: { lp: this.learningPathId } }).toString();
     window.open(url, '_blank');
   }
 
   openExportPreview(): void {
     if (!this.learningPathId) return;
-    this.saveGraph();
-    this.saveMeta();
     const url = this.router.createUrlTree(['/roadmaps/preview'], { queryParams: { lp: this.learningPathId, export: 1 } }).toString();
     window.open(url, '_blank');
   }

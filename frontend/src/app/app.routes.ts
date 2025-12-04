@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './auth.guard';
 import { ModuleSelectPage } from './pages/start/module-select.page';
 
 export const routes: Routes = [
@@ -8,7 +9,7 @@ export const routes: Routes = [
   { path: 'roadmaps/ia', loadComponent: () => import('./pages/roadmaps/ai.page').then(m => m.RoadmapsAIPage) },
   { path: 'roadmaps/comunidad', loadComponent: () => import('./pages/roadmaps/community.page').then(m => m.RoadmapsCommunityPage) },
   { path: 'mis-roadmaps', loadComponent: () => import('./pages/roadmaps/my.page').then(m => m.MyRoadmapsPage) },
-  { path: 'roadmaps/editor', loadComponent: () => import('./pages/editor/roadmap-editor.page').then(m => m.RoadmapEditorPage) },
+  { path: 'roadmaps/editor', canActivate: [authGuard], loadComponent: () => import('./pages/editor/roadmap-editor.page').then(m => m.RoadmapEditorPage) },
   { path: 'roadmaps/preview', loadComponent: () => import('./pages/preview/roadmap-preview.page').then(m => m.RoadmapPreviewPage) },
   { path: 'buscar', loadComponent: () => import('./pages/search/search.page').then(m => m.SearchPage) },
   { path: 'login', loadComponent: () => import('./pages/auth/login.page').then(m => m.LoginPage) },

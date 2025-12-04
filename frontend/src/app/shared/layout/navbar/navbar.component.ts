@@ -19,6 +19,14 @@ export class NavbarComponent {
   avatarInitial = 'U';
 
   constructor(public api: ApiService, private router: Router) {
+    const t = this.api.token;
+    if (t) {
+      try {
+        const p = JSON.parse(atob(t.split('.')[1] || ''));
+        this.username = String(p?.username || '');
+        this.avatarInitial = (this.username || 'U').charAt(0).toUpperCase();
+      } catch {}
+    }
     effect(() => {
       const authed = this.api.authState();
       if (authed) {

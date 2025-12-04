@@ -41,10 +41,7 @@ export class ApiService {
   }
 
 
-  async exchangeSupabaseToken(accessToken: string): Promise<AuthResponse> {
-    const url = `${this.baseUrl}/auth/supabase/exchange`;
-    return await firstValueFrom(this.http.post<AuthResponse>(url, { accessToken }));
-  }
+  // Eliminado soporte de Supabase: intercambio de token descontinuado
 
   async me(): Promise<UserInfo> {
     const url = `${this.baseUrl}/me`;

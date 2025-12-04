@@ -42,6 +42,14 @@ type UserRoadmap struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type RoadmapComment struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	RoadmapID uint      `gorm:"index;not null" json:"roadmap_id"`
+	UserID    uint      `gorm:"index;not null" json:"user_id"`
+	Content   string    `gorm:"type:text;not null" json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type AuthResponse struct {
 	Token string `json:"token"`
 }
@@ -72,7 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
-	if err := db.AutoMigrate(&User{}, &Roadmap{}, &UserRoadmap{}); err != nil {
+	if err := db.AutoMigrate(&User{}, &Roadmap{}, &UserRoadmap{}, &RoadmapComment{}); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
 
@@ -349,6 +357,71 @@ func main() {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"ok": false})
 		}
 		return c.JSON(fiber.Map{"ok": true})
+	})
+
+	api.Get("/learning-paths/:id/comments", func(c *fiber.Ctx) error {
+		lpID := c.Params("id")
+		var comments []RoadmapComment
+		if err := db.Where("roadmap_id = ?", lpID).Order("created_at desc").Find(&comments).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"items": []fiber.Map{}})
+		}
+		// fetch usernames in batch
+		userIDs := make([]uint, 0, len(comments))
+		for _, cm := range comments {
+			userIDs = append(userIDs, cm.UserID)
+		}
+		var users []User
+		if len(userIDs) > 0 {
+			if err := db.Where("id IN ?", userIDs).Find(&users).Error; err != nil {
+				users = []User{}
+			}
+		}
+		uname := map[uint]string{}
+		for _, u := range users {
+			uname[u.ID] = u.Username
+		}
+		items := make([]fiber.Map, 0, len(comments))
+		for _, cm := range comments {
+			items = append(items, fiber.Map{"id": cm.ID, "content": cm.Content, "createdAt": cm.CreatedAt, "username": uname[cm.UserID]})
+		}
+		return c.JSON(fiber.Map{"items": items})
+	})
+
+	api.Post("/learning-paths/:id/comments", func(c *fiber.Ctx) error {
+		auth := c.Get("Authorization")
+		parts := strings.SplitN(auth, " ", 2)
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "no autorizado"})
+		}
+		claims, err := parseToken(jwtSecret, parts[1])
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token inválido"})
+		}
+		lpID := c.Params("id")
+		var r Roadmap
+		if err := db.First(&r, lpID).Error; err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no encontrado"})
+		}
+		// accept json or form
+		var body struct {
+			Content string `json:"content"`
+		}
+		if c.Is("json") {
+			if err := json.Unmarshal(c.Body(), &body); err != nil {
+				body.Content = ""
+			}
+		} else {
+			body.Content = c.FormValue("content")
+		}
+		content := strings.TrimSpace(body.Content)
+		if content == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "contenido vacío"})
+		}
+		cm := &RoadmapComment{RoadmapID: r.ID, UserID: claims.UserID, Content: content}
+		if err := db.Create(cm).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo comentar"})
+		}
+		return c.JSON(fiber.Map{"id": cm.ID})
 	})
 
 	api.Post("/learning-paths/:id/lock", func(c *fiber.Ctx) error {

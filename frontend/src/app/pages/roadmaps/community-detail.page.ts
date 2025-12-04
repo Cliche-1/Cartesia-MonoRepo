@@ -12,42 +12,42 @@ import { ApiService, LearningPath } from '../../services/api.service';
   template: `
     <section class="page">
       <header class="header">
-        <h1 class="title">{{ summary.title || 'Roadmap' }}</h1>
-        <p class="subtitle" *ngIf="summary.description">{{ summary.description }}</p>
-        <div class="meta" *ngIf="summary.createdAt">Publicado: {{summary.createdAt | date:'medium'}}</div>
+        <h1 class="title">{{ summary().title || 'Roadmap' }}</h1>
+        <p class="subtitle" *ngIf="summary().description">{{ summary().description }}</p>
+        <div class="meta" *ngIf="summary().createdAt">Publicado: {{summary().createdAt | date:'medium'}}</div>
         <div class="actions">
           <button class="btn" (click)="toggleLike()">{{ liked() ? 'Quitar me gusta' : 'Me gusta' }}</button>
           <div class="rating">
-            <button class="star" [class.active]="myRating>=1" (click)="onRate(1)"><i class="pi pi-star-fill"></i></button>
-            <button class="star" [class.active]="myRating>=2" (click)="onRate(2)"><i class="pi pi-star-fill"></i></button>
-            <button class="star" [class.active]="myRating>=3" (click)="onRate(3)"><i class="pi pi-star-fill"></i></button>
-            <button class="star" [class.active]="myRating>=4" (click)="onRate(4)"><i class="pi pi-star-fill"></i></button>
-            <button class="star" [class.active]="myRating>=5" (click)="onRate(5)"><i class="pi pi-star-fill"></i></button>
-            <span class="avg" *ngIf="ratingAvg">{{ratingAvg | number:'1.1-1'}}/5</span>
+            <button class="star" [class.active]="myRating()>=1" (click)="onRate(1)"><i class="pi pi-star-fill"></i></button>
+            <button class="star" [class.active]="myRating()>=2" (click)="onRate(2)"><i class="pi pi-star-fill"></i></button>
+            <button class="star" [class.active]="myRating()>=3" (click)="onRate(3)"><i class="pi pi-star-fill"></i></button>
+            <button class="star" [class.active]="myRating()>=4" (click)="onRate(4)"><i class="pi pi-star-fill"></i></button>
+            <button class="star" [class.active]="myRating()>=5" (click)="onRate(5)"><i class="pi pi-star-fill"></i></button>
+            <span class="avg" *ngIf="ratingAvg()">{{ratingAvg() | number:'1.1-1'}}/5</span>
           </div>
         </div>
       </header>
 
       <div class="viewer-wrap">
         <div #graphEl class="graph"></div>
-        <aside class="details" *ngIf="sidebarOpen && activeNode">
+        <aside class="details" *ngIf="sidebarOpen() && activeNode() as an">
           <div class="details-header">
-            <h3>{{activeNodeLabel || 'Nodo'}}</h3>
+            <h3>{{activeNodeLabel() || 'Nodo'}}</h3>
             <button class="close" (click)="closeSidebar()">✕</button>
           </div>
           <div class="details-content">
-            <div class="block" *ngIf="contentTitle">
+            <div class="block" *ngIf="contentTitle()">
               <div class="muted">Título</div>
-              <div class="value">{{contentTitle}}</div>
+              <div class="value">{{contentTitle()}}</div>
             </div>
-            <div class="block" *ngIf="contentDescription">
+            <div class="block" *ngIf="contentDescription()">
               <div class="muted">Descripción</div>
-              <div class="value desc">{{contentDescription}}</div>
+              <div class="value desc">{{contentDescription()}}</div>
             </div>
-            <div class="block" *ngIf="resources?.length">
+            <div class="block" *ngIf="resources().length">
               <div class="muted">Recursos</div>
               <ul class="resources">
-                <li *ngFor="let r of resources"><span class="badge">{{r.type}}</span> <a [href]="r.url" target="_blank" rel="noopener">{{r.title || r.url}}</a></li>
+                <li *ngFor="let r of resources()"><span class="badge">{{r.type}}</span> <a [href]="r.url" target="_blank" rel="noopener">{{r.title || r.url}}</a></li>
               </ul>
             </div>
           </div>
@@ -56,11 +56,11 @@ import { ApiService, LearningPath } from '../../services/api.service';
 
       <div class="composer" *ngIf="api.authState()">
         <textarea [(ngModel)]="newComment" placeholder="Escribe un comentario" rows="3"></textarea>
-        <div class="row"><button class="btn primary" (click)="submitComment()" [disabled]="submitting || !newComment">Comentar</button><span class="muted" *ngIf="submitting">Enviando…</span></div>
+        <div class="row"><button class="btn primary" (click)="submitComment()" [disabled]="submitting() || !newComment">Comentar</button><span class="muted" *ngIf="submitting()">Enviando…</span></div>
       </div>
 
-      <div class="feed" *ngIf="comments.length">
-        <article class="post" *ngFor="let c of comments">
+      <div class="feed" *ngIf="comments().length">
+        <article class="post" *ngFor="let c of comments()">
           <div class="avatar">{{ (c.username || '?').charAt(0) }}</div>
           <div class="content">
             <div class="meta"><span class="name">{{c.username}}</span> • <span class="date">{{c.createdAt | date:'medium'}}</span></div>
@@ -106,29 +106,29 @@ import { ApiService, LearningPath } from '../../services/api.service';
 export class CommunityRoadmapDetailPage implements OnInit, OnDestroy {
   @ViewChild('graphEl', { static: true }) graphEl!: ElementRef<HTMLDivElement>;
   private graph!: Graph;
-  summary: LearningPath = { id: 0, title: '' } as any;
+  summary = signal<LearningPath>({ id: 0, title: '' } as any);
   lpId = 0;
-  sidebarOpen = false;
-  activeNode?: Node;
-  activeNodeLabel = '';
-  contentTitle = '';
-  contentDescription = '';
-  resources: { type: string; title: string; url: string }[] = [];
-  comments: { id:number; content:string; createdAt:string; username:string }[] = [];
-  myRating = 0;
-  ratingAvg = 0;
+  sidebarOpen = signal(false);
+  activeNode = signal<Node|undefined>(undefined);
+  activeNodeLabel = signal('');
+  contentTitle = signal('');
+  contentDescription = signal('');
+  resources = signal<{ type: string; title: string; url: string }[]>([]);
+  comments = signal<{ id:number; content:string; createdAt:string; username:string }[]>([]);
+  myRating = signal(0);
+  ratingAvg = signal(0);
   liked = signal(false);
   newComment = '';
-  submitting = false;
+  submitting = signal(false);
   constructor(private route: ActivatedRoute, public api: ApiService) {}
   ngOnInit(): void {
     const idStr = this.route.snapshot.paramMap.get('id');
     this.lpId = idStr ? parseInt(idStr, 10) : 0;
     this.graph = new Graph({ container: this.graphEl.nativeElement, background: { color: '#f7f7fb' }, grid: { visible: false }, panning: true, mousewheel: { enabled: true, modifiers: 'ctrl' }, interacting: false });
     if (this.lpId) {
-      this.api.getLearningPathSummary(this.lpId).then(s => this.summary = s as any).catch(() => {});
+      this.api.getLearningPathSummary(this.lpId).then(s => this.summary.set(s as any)).catch(() => {});
       this.api.getLearningPathDiagram(this.lpId).then(d => this.loadGraphFromJSON(d?.diagramJSON)).catch(() => {});
-      this.api.getLearningPathComments(this.lpId).then(r => this.comments = r.items || []).catch(() => {});
+      this.api.getLearningPathComments(this.lpId).then(r => this.comments.set(r.items || [])).catch(() => {});
       this.loadRatings();
     }
     this.graph.on('node:click', ({ node }) => { this.openSidebar(node as Node); });
@@ -138,10 +138,10 @@ export class CommunityRoadmapDetailPage implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.graph?.dispose(); }
   private loadGraphFromJSON(json?: string) { if (!json) return; try { const data = JSON.parse(json); this.graph?.fromJSON(data); this.applySmooth(); } catch {} }
   private applySmooth() { const edges = this.graph?.getEdges?.() || []; edges.forEach(edge => { edge.setConnector('smooth'); edge.attr('line/stroke', '#A2B1C3'); edge.attr('line/strokeWidth', 2); edge.attr('line/targetMarker', ''); }); }
-  private openSidebar(node: Node) { this.activeNode = node; this.activeNodeLabel = String(node.attr('label/text') || node.getData()?.text || ''); const d = node.getData() || {}; this.contentTitle = String(d.contentTitle || ''); this.contentDescription = String(d.contentDescription || ''); this.resources = Array.isArray(d.resources) ? d.resources : []; this.sidebarOpen = true; }
-  closeSidebar() { this.sidebarOpen = false; }
-  async loadRatings(): Promise<void> { if (!this.lpId) return; try { const r = await this.api.getLearningPathRatings(this.lpId); this.ratingAvg = Number(r?.avg || 0); } catch {} }
-  async onRate(score: number): Promise<void> { if (!this.lpId) return; try { await this.api.rateLearningPath(this.lpId, score); this.myRating = score; await this.loadRatings(); } catch {} }
+  private openSidebar(node: Node) { this.activeNode.set(node); this.activeNodeLabel.set(String(node.attr('label/text') || node.getData()?.text || '')); const d = node.getData() || {}; this.contentTitle.set(String(d.contentTitle || '')); this.contentDescription.set(String(d.contentDescription || '')); this.resources.set(Array.isArray(d.resources) ? d.resources : []); this.sidebarOpen.set(true); }
+  closeSidebar() { this.sidebarOpen.set(false); }
+  async loadRatings(): Promise<void> { if (!this.lpId) return; try { const r = await this.api.getLearningPathRatings(this.lpId); this.ratingAvg.set(Number(r?.avg || 0)); } catch {} }
+  async onRate(score: number): Promise<void> { if (!this.lpId) return; try { await this.api.rateLearningPath(this.lpId, score); this.myRating.set(score); await this.loadRatings(); } catch {} }
   toggleLike() { this.liked.update(v => !v); }
-  async submitComment(): Promise<void> { if (!this.lpId || !this.newComment) return; this.submitting = true; try { await this.api.postRoadmapComment(this.lpId, this.newComment); this.newComment = ''; const r = await this.api.getLearningPathComments(this.lpId); this.comments = r.items || []; } catch {} finally { this.submitting = false; } }
+  async submitComment(): Promise<void> { if (!this.lpId || !this.newComment) return; this.submitting.set(true); try { await this.api.postRoadmapComment(this.lpId, this.newComment); this.newComment = ''; const r = await this.api.getLearningPathComments(this.lpId); this.comments.set(r.items || []); } catch {} finally { this.submitting.set(false); } }
 }

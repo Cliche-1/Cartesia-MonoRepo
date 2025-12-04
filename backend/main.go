@@ -50,6 +50,15 @@ type RoadmapComment struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type RoadmapRating struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	RoadmapID uint      `gorm:"index;not null;uniqueIndex:idx_rating_user_roadmap" json:"roadmap_id"`
+	UserID    uint      `gorm:"index;not null;uniqueIndex:idx_rating_user_roadmap" json:"user_id"`
+	Score     int       `gorm:"not null" json:"score"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type AuthResponse struct {
 	Token string `json:"token"`
 }
@@ -80,7 +89,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
-	if err := db.AutoMigrate(&User{}, &Roadmap{}, &UserRoadmap{}, &RoadmapComment{}); err != nil {
+	if err := db.AutoMigrate(&User{}, &Roadmap{}, &UserRoadmap{}, &RoadmapComment{}, &RoadmapRating{}); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
 
@@ -435,6 +444,83 @@ func main() {
 	})
 	api.Post("/learning-paths/:id/invite", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"token": "dummy-token"})
+	})
+
+	api.Post("/learning-paths/:id/rate", func(c *fiber.Ctx) error {
+		auth := c.Get("Authorization")
+		parts := strings.SplitN(auth, " ", 2)
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "no autorizado"})
+		}
+		claims, err := parseToken(jwtSecret, parts[1])
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token inválido"})
+		}
+		lpID := c.Params("id")
+		var r Roadmap
+		if err := db.First(&r, lpID).Error; err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no encontrado"})
+		}
+		if r.Visibility != "public" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "solo roadmaps públicos"})
+		}
+		var body struct {
+			Score int `json:"score"`
+		}
+		if c.Is("json") {
+			_ = json.Unmarshal(c.Body(), &body)
+		} else {
+			if v := c.FormValue("score"); v != "" {
+				if n, e := fmt.Sscanf(v, "%d", &body.Score); e != nil || n != 1 {
+					body.Score = 0
+				}
+			}
+		}
+		if body.Score < 1 || body.Score > 5 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "score inválido"})
+		}
+		var existing RoadmapRating
+		err = db.Where("roadmap_id = ? AND user_id = ?", r.ID, claims.UserID).First(&existing).Error
+		if err == nil {
+			existing.Score = body.Score
+			if e := db.Save(&existing).Error; e != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo calificar"})
+			}
+		} else {
+			rr := &RoadmapRating{RoadmapID: r.ID, UserID: claims.UserID, Score: body.Score}
+			if e := db.Create(rr).Error; e != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "no se pudo calificar"})
+			}
+		}
+		return c.JSON(fiber.Map{"ok": true})
+	})
+
+	api.Get("/learning-paths/:id/ratings", func(c *fiber.Ctx) error {
+		lpID := c.Params("id")
+		var r Roadmap
+		if err := db.First(&r, lpID).Error; err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"avg": 0.0, "breakdown": []fiber.Map{}})
+		}
+		var rows []struct {
+			Score int
+			Count int64
+		}
+		if err := db.Model(&RoadmapRating{}).Select("score, COUNT(*) as count").Where("roadmap_id = ?", r.ID).Group("score").Order("score asc").Find(&rows).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"avg": 0.0, "breakdown": []fiber.Map{}})
+		}
+		total := int64(0)
+		sum := int64(0)
+		breakdown := make([]fiber.Map, 0, len(rows))
+		for _, rw := range rows {
+			total += rw.Count
+			sum += int64(rw.Score) * rw.Count
+			breakdown = append(breakdown, fiber.Map{"score": rw.Score, "count": rw.Count})
+		}
+		avg := 0.0
+		if total > 0 {
+			avg = float64(sum) / float64(total)
+		}
+		return c.JSON(fiber.Map{"avg": avg, "breakdown": breakdown})
 	})
 
 	log.Printf("Servidor escuchando en :%s", port)
